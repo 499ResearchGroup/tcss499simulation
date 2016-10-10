@@ -475,8 +475,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4afcb9ec1bd6948428fc81d8fbbed8f3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  walkSpeed: 0
-  runSpeed: 0
+  maxWalkSpeed: 0
+  maxTurnSpeed: 0
+  maxRunSpeed: 0
 --- !u!54 &1926354241
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -484,7 +485,7 @@ Rigidbody:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1926354237}
   serializedVersion: 2
-  m_Mass: 250
+  m_Mass: 550
   m_Drag: 0
   m_AngularDrag: 0.05
   m_UseGravity: 1
@@ -659,6 +660,7 @@ GameObject:
   - 92: {fileID: 2068014768}
   - 124: {fileID: 2068014767}
   - 81: {fileID: 2068014766}
+  - 114: {fileID: 2068014771}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -727,13 +729,25 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 2068014765}
-  m_LocalRotation: {x: 0.21263108, y: 0.67437977, z: -0.21263108, w: 0.67437977}
-  m_LocalPosition: {x: -5, y: 5, z: 0}
+  m_LocalRotation: {x: 0.2164396, y: -0, z: -0, w: 0.97629607}
+  m_LocalPosition: {x: 1, y: 11.69, z: -18}
   m_LocalScale: {x: 1, y: 1, z: 1}
-  m_LocalEulerAnglesHint: {x: 35, y: 90, z: 0}
+  m_LocalEulerAnglesHint: {x: 25, y: 0, z: 0}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
+--- !u!114 &2068014771
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 2068014765}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79a8c9ee79b54cb4595df48b2ba0233a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  HorseTest: {fileID: 1926354237}
 --- !u!1 &2137945159
 GameObject:
   m_ObjectHideFlags: 0
