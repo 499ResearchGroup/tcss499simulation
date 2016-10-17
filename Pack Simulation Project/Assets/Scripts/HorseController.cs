@@ -3,84 +3,56 @@ using System.Collections;
 
 public class HorseController : MonoBehaviour {
 
-
-    // TESTING ANIMATION STATE TRANSITIONS
-    // 0 == IDLE
-    // 1 == WALK
-    // 2 == RUN
     Animator animator;
+    private Rigidbody rb;
 
-    private float timer;
-
+    // Parameters to determine maximum speed for player control
     public float maxWalkSpeed;
     public float maxTurnSpeed;
     public float maxRunSpeed;
-
-    // Debug flag to determine whether or not to draw debug text to the screen
-    private bool animDebug;
     
     // Flag to determine whether the Horse is controlled by the player
     private bool playerControlled;
 
+    private NavMeshAgent agent;
+
+    private bool selected; 
+
 	// Use this for initialization
 	void Start () {
-        Debug.Log("Hello World!");
         animator = GetComponent<Animator>();
-        animDebug = false;
+        rb = GetComponent<Rigidbody>();
+        rb.mass = 550;
+        selected = false;
+
+
+        // Used for player control
         playerControlled = false;
-        timer = 2.5f;
-        maxWalkSpeed = 5;
-        maxRunSpeed = 9.5f;
+        maxWalkSpeed = 10;
+        maxRunSpeed = 19;
         maxTurnSpeed = 150;
 
-        enablePlayerController();
+        //enablePlayerController();
 	}
 	
 	// Update is called once per frame
 	void Update () {
-        // horseAgentAI();
-        // animationDebugInput();
-        // randomStateChange();
 
-        // If the enablePlayerControl helper method is called, check player input
-        if (playerControlled) {
-
-            float turnSpeed = Input.GetAxis("Horizontal") * maxTurnSpeed;
-            float walkSpeed;
-
-            if (Input.GetKey(KeyCode.LeftShift)) {
-                walkSpeed = Input.GetAxis("Vertical") * maxRunSpeed;
-            } else {
-                walkSpeed = Input.GetAxis("Vertical") * maxWalkSpeed;
-            }
-
-            //Debug.Log("Current walkSpeed: " + walkSpeed);
-
-            transform.Translate(0, 0, walkSpeed * Time.deltaTime);
-            transform.Rotate(0, turnSpeed * Time.deltaTime, 0);
-
-            if (walkSpeed > 0 && walkSpeed <= 5) {
-                animator.SetInteger("movement_state", 1);
-            } else if (walkSpeed > 5) {
-                animator.SetInteger("movement_state", 2);
-            } else {
-                animator.SetInteger("movement_state", 0);
-            }
-        }
     }
 
+    // FixedUpdate is called in sync with the physics engine 
     void FixedUpdate() {
-
+        // If the enablePlayerController helper method is called, check player input
+        if (playerControlled) {
+            performPlayerInput();
+        }
     }
 
     // Used to draw non-interactive UI elements to the screen 
     void OnGUI() {
-        if (animDebug) {
+        if (selected) {
             GUI.color = Color.red;
-            GUI.Label(new Rect(10, 10, 500, 20), "Animation Input Debug ON");
-            GUI.Label(new Rect(10, 30, 500, 20), "Press 1 for IDLE");
-            GUI.Label(new Rect(10, 50, 500, 20), "Press 2 for WALK");
-            GUI.Label(new Rect(10, 70, 500, 20), "Press 3 for RUN");
+            GUI.Label(new Rect(10, 10, 500, 20), "Agent Information Goes Here");
         }
 
         if (playerControlled) {
@@ -91,9 +63,18 @@ public class HorseController : MonoBehaviour {
         }
     }
 
-    // Used to give the Horse AI behavior
-    private void horseAgentAI() {
+    // Triggers when a mouse click collides with the BoxCollider on the Horse
+    void OnMouseDown() {
+        Debug.Log("I clicked on the Horse!");
+        GameObject getCameraObject = GameObject.FindGameObjectWithTag("MainCamera");
+        CameraController camera = getCameraObject.GetComponent<CameraController>();
+        selected = true;
+        camera.changeObjectFocus(this.transform); 
+    }
 
+    // Allows the camera to let the HorseController know that it has been deselected
+    public void deselect() {
+        selected = false;
     }
 
     // Used to manually control the movement of the Horse 
@@ -101,44 +82,37 @@ public class HorseController : MonoBehaviour {
         playerControlled = true;
     }
 
-    // Triggers a random animation state change 
-    private void randomStateChange() {
-        timer -= Time.deltaTime;
+    // Performs player input checking when playerControl is enabled.
+    private void performPlayerInput() {
 
-        if (timer <= 0) {
-            Debug.Log("timer is up! prev state: " + animator.GetInteger("movement_state"));
-            int newState = (int)Mathf.Floor(Random.Range(0, 2.999f));
-            Debug.Log("new timer state: " + newState);
-            animator.SetInteger("movement_state", newState);
-            timer = 2.5f;
-        }
-    }
+        float moveHorizontal = Input.GetAxis("Horizontal") * maxTurnSpeed;
+        float moveVertical;
 
-    // Changes animation state based on user input
-    // Add to Update() to implement
-    private void animationDebugInput() {
-        animDebug = true;
-
-        if (Input.GetKeyDown("1"))
-        {
-            animator.SetInteger("movement_state", 0);
-            Debug.Log("Set movement to state 0 (IDLE)");
+        // If we're holding down our sprint key, sprint
+        if (Input.GetKey(KeyCode.LeftShift)) {
+            moveVertical = Input.GetAxis("Vertical") * maxRunSpeed;
+        } else {
+            moveVertical = Input.GetAxis("Vertical") * maxWalkSpeed;
         }
 
-        if (Input.GetKeyDown("2"))
-        {
+        // Old movement method translating the absolute position of the parent game object for our Horse
+        // Better to use Rigidbody.addforce
+        transform.Translate(0, 0, moveVertical * Time.deltaTime);
+        transform.Rotate(0, moveHorizontal * Time.deltaTime, 0);
+
+        // New testing method using addtorque and addforce
+        //Vector3 turning = new Vector3(0.0f, moveHorizontal * -1.0f, 0.0f);
+        //Vector3 movement = new Vector3(0.0f, 0.0f, moveVertical);
+
+        //rb.AddTorque(turning);
+        //rb.AddForce(movement);
+
+        if (moveVertical > 0 && moveVertical <= maxWalkSpeed) {
             animator.SetInteger("movement_state", 1);
-            Debug.Log("Set movement to state 1 (WALK)");
-        }
-
-        if (Input.GetKeyDown("3"))
-        {
+        } else if (moveVertical > maxWalkSpeed) {
             animator.SetInteger("movement_state", 2);
-            Debug.Log("Set movement to state 2 (RUN)");
+        } else {
+            animator.SetInteger("movement_state", 0);
         }
-    }
-
-    private void drawDebugControls() {
-
     }
 }
