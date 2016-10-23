@@ -278,7 +278,6 @@ GameObject:
   - 95: {fileID: 95000012526291384}
   - 54: {fileID: 54000012463253610}
   - 65: {fileID: 65000013385006274}
-  - 114: {fileID: 114000010011718570}
   - 114: {fileID: 114000011238113658}
   - 195: {fileID: 195000010404216144}
   m_Layer: 0
@@ -1395,20 +1394,6 @@ Animator:
   m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
---- !u!114 &114000010011718570
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1000011254943440}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4afcb9ec1bd6948428fc81d8fbbed8f3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  maxWalkSpeed: 0
-  maxTurnSpeed: 0
-  maxRunSpeed: 0
 --- !u!114 &114000011238113658
 MonoBehaviour:
   m_ObjectHideFlags: 1

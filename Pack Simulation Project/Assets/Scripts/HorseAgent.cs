@@ -6,7 +6,6 @@ using System.Collections;
 public class HorseAgent : MonoBehaviour {
 
 
-    public Transform[] points;
     private NavMeshAgent agent;
     private Animator animator;
     private int curDestination;
@@ -16,6 +15,11 @@ public class HorseAgent : MonoBehaviour {
 
     private Vector3 previousPosition;
     private float curSpeed;
+    private bool selected;
+
+    // 0 for prey
+    // 1 for predator 
+    public int animal_type; 
 
     // Use this for initialization
     void Start () {
@@ -26,7 +30,6 @@ public class HorseAgent : MonoBehaviour {
         curDestination = 0;
         maxWalkSpeed = 5;
         maxRunSpeed = 15;
-        GoToNextPoint();
 	}
 	
 	// Update is called once per frame
@@ -35,8 +38,12 @@ public class HorseAgent : MonoBehaviour {
         curSpeed = curMove.magnitude / Time.deltaTime;
         previousPosition = transform.position;
 
-        if (agent.remainingDistance < 0.5f) {
-            GoToNextPoint();
+        // if we're prey
+        if (animal_type == 0) {
+            updatePrey();
+        } else {
+        // if we're a predator
+            updatePredator();
         }
 
         if (curSpeed > 0 && curSpeed <= maxWalkSpeed) {
@@ -49,14 +56,77 @@ public class HorseAgent : MonoBehaviour {
 
     }
 
-    private void GoToNextPoint() {
-        if (points.Length == 0) {
-            Debug.Log("No waypoints have been set up.");
-            return;
+    // Triggers when a mouse click collides with the BoxCollider on the Horse
+    void OnMouseDown() {
+        Debug.Log("I clicked on the Horse!");
+        GameObject getCameraObject = GameObject.FindGameObjectWithTag("MainCamera");
+        CameraController camera = getCameraObject.GetComponent<CameraController>();
+        selected = true;
+        camera.changeObjectFocus(this.transform);
+    }
+
+    // Used to draw non-interactive UI elements to the screen 
+    void OnGUI() {
+        if (selected) {
+            GUI.color = Color.red;
+            GUI.Label(new Rect(10, 10, 500, 20), "Agent Information Goes Here");
+        }
+    }
+
+    // Allows the camera to let the HorseAgent know that it has been deselected
+    public void deselect() {
+        selected = false;
+    }
+
+    private void updatePredator() {
+        // create a detection radius and find all prey within it
+        Collider[] hitColliders = Physics.OverlapSphere(this.transform.position, 100);
+        for (int i = 0; i < hitColliders.Length; i++) {
+            GameObject curObject = hitColliders[i].gameObject;
+            if (curObject.tag == "HorseAgent") {
+                HorseAgent getScript = curObject.GetComponent<HorseAgent>();
+
+                // if the thing we collided with is a prey
+                if (getScript.animal_type == 0) {
+                    //Debug.Log("A Predator's vision has collided with a Prey.");
+                    // follow it!
+                    agent.SetDestination(curObject.transform.position);
+                }
+            }
+        }
+    }
+
+    private void updatePrey() {
+        // create a detection radius and find all predators within it
+        Collider[] hitColliders = Physics.OverlapSphere(this.transform.position, 100);
+        Vector3 normalizedCenter = new Vector3(0, 0, 0);
+        int numOfPred = 0;
+        for (int i = 0; i < hitColliders.Length; i++) {
+            GameObject curObject = hitColliders[i].gameObject;
+            if (curObject.tag == "HorseAgent") {
+                HorseAgent getScript = curObject.GetComponent<HorseAgent>();
+
+                // if the thing we collided with is a predator
+                if (getScript.animal_type == 1) {
+                    //Debug.Log("A Prey's vision has collided with a Predator.");
+                    // run away!
+                    //transform.rotation = Quaternion.LookRotation(transform.position - curObject.transform.position);
+
+                    //Vector3 runTo = transform.position + transform.forward;
+                    numOfPred++;
+                    normalizedCenter += curObject.transform.position;
+                }
+            }
         }
 
-        agent.destination = points[curDestination].position;
+        normalizedCenter = (normalizedCenter / numOfPred);
+        Vector3 moveAway = Vector3.MoveTowards(this.transform.position, normalizedCenter, -1 * Time.deltaTime * maxRunSpeed);
+        NavMeshHit hit;
+        NavMesh.SamplePosition(moveAway, out hit, 5, NavMesh.AllAreas);
 
-        curDestination = (curDestination + 1) % points.Length;
+        GameObject waypoint = GameObject.Find("CURRENT_WAYPOINT_DEBUG_PREY");
+        waypoint.transform.position = moveAway;
+        agent.SetDestination(hit.position);
     }
+
 }

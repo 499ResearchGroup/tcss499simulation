@@ -57,7 +57,7 @@ public class CameraController : MonoBehaviour {
 
         // If space bar is pressed detach from the current focucs
         if (target != null && Input.GetKey(KeyCode.Space)) {
-            HorseController targetScript = target.gameObject.GetComponent<HorseController>();
+            HorseAgent targetScript = target.gameObject.GetComponent<HorseAgent>();
             targetScript.deselect();
             target = null;
         }
