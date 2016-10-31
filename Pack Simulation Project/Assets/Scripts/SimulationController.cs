@@ -3,8 +3,8 @@ using System.Collections;
 
 public class SimulationController : MonoBehaviour {
 
-    public HorseAgent[] predators;
-    public HorseAgent[] prey;
+    public PredatorAgent[] predators;
+    public PreyAgent[] prey;
 
 	// Use this for initialization
 	void Start () {

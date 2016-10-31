@@ -57,13 +57,30 @@ public class CameraController : MonoBehaviour {
 
         // If space bar is pressed detach from the current focucs
         if (target != null && Input.GetKey(KeyCode.Space)) {
-            HorseAgent targetScript = target.gameObject.GetComponent<HorseAgent>();
-            targetScript.deselect();
+            if (target.gameObject.tag == "PreyAgent") {
+                PreyAgent targetScript = target.gameObject.GetComponent<PreyAgent>();
+                targetScript.deselect();
+            }
+
+            if (target.gameObject.tag == "PredatorAgent") {
+                PredatorAgent targetScript = target.gameObject.GetComponent<PredatorAgent>();
+                targetScript.deselect();
+            }
             target = null;
         }
     }
 
     public void changeObjectFocus(Transform agentPos) {
+        if (target != null && target.gameObject.tag.Equals("PreyAgent")) {
+            PreyAgent targetScript = target.gameObject.GetComponent<PreyAgent>();
+            targetScript.deselect();
+        }
+
+        if (target != null && target.gameObject.tag.Equals("PredatorAgent")) {
+            PredatorAgent targetScript = target.gameObject.GetComponent<PredatorAgent>();
+            targetScript.deselect();
+        }
+
         target = agentPos;
     }
 
