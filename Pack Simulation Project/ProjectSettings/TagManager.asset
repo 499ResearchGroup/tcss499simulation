@@ -6,6 +6,7 @@ TagManager:
   tags:
   - PreyAgent
   - PredatorAgent
+  - Wall
   layers:
   - Default
   - TransparentFX

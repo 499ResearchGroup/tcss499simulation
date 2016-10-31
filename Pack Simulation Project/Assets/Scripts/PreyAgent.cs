@@ -20,6 +20,7 @@ public class PreyAgent : MonoBehaviour {
     private double endurance;
     private int health;
     private string state;
+    private float visionRadius;
 
     // Use this for initialization
     void Start() {
@@ -32,6 +33,7 @@ public class PreyAgent : MonoBehaviour {
         curDestination = 0;
         maxWalkSpeed = 5;
         maxRunSpeed = 15;
+        visionRadius = 50;
         state = "relaxed";
 	}
 	
@@ -81,7 +83,7 @@ public class PreyAgent : MonoBehaviour {
 
     private void updatePrey() {
         // create a detection radius and find all predators within it
-        Collider[] hitColliders = Physics.OverlapSphere(this.transform.position, 100);
+        Collider[] hitColliders = Physics.OverlapSphere(this.transform.position, visionRadius);
         Vector3 normalizedCenter = new Vector3(0, 0, 0);
         int numOfPred = 0;
         for (int i = 0; i < hitColliders.Length; i++) {
@@ -95,6 +97,11 @@ public class PreyAgent : MonoBehaviour {
                 numOfPred++;
                 normalizedCenter += curObject.transform.position;
             }
+
+            if (curObject.tag == "Wall") {
+                normalizedCenter += curObject.transform.position;
+                numOfPred++;
+            }
         }
 
         // we've detected a predator! run!
@@ -105,10 +112,7 @@ public class PreyAgent : MonoBehaviour {
             NavMeshHit hit;
             NavMesh.SamplePosition(moveAway, out hit, 5, NavMesh.AllAreas);
 
-            GameObject waypoint = GameObject.Find("CURRENT_WAYPOINT_DEBUG_PREY");
-            waypoint.transform.position = hit.position;
             agent.SetDestination(hit.position);
-
             agent.speed = maxRunSpeed;
         } else {
         // we haven't seen a predator, so make sure our speed isn't too fast
@@ -116,6 +120,13 @@ public class PreyAgent : MonoBehaviour {
             agent.speed = maxWalkSpeed;
             state = "relaxed";
         }
+
+        // waypoint debug code, now being used to see the vision radius
+        GameObject waypoint = GameObject.Find("CURRENT_WAYPOINT_DEBUG_PREY");
+        waypoint.transform.position = this.transform.position;
+        WayPointDebugScript wpScript = waypoint.GetComponent<WayPointDebugScript>();
+        wpScript.updateRadius(visionRadius);
+
 
         updateEndurance();
     }

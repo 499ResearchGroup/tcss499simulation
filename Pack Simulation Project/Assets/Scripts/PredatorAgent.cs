@@ -7,7 +7,7 @@ public class PredatorAgent : MonoBehaviour {
 
 
     private NavMeshAgent agent;
-    private Animation animation;
+    private Animation animate;
     private int curDestination;
 
     private float maxWalkSpeed;
@@ -19,19 +19,21 @@ public class PredatorAgent : MonoBehaviour {
     private string curTargetName;
 
     private float endurance;
+    private float visionRadius;
 
     // Use this for initialization
     void Start() {
         agent = GetComponent<NavMeshAgent>();
         agent.autoBraking = false;
         Transform findChild = this.transform.Find("allosaurus_root");
-        animation = findChild.GetComponent<Animation>();
+        animate = findChild.GetComponent<Animation>();
         curTargetName = "NO TARGET SELECTED";
         previousPosition = transform.position;
         curDestination = 0;
         endurance = 1.0f;
         maxWalkSpeed = 5;
         maxRunSpeed = 10;
+        visionRadius = 100;
     }
 
     // Update is called once per frame
@@ -44,11 +46,11 @@ public class PredatorAgent : MonoBehaviour {
         updatePredator();
 
         if (curSpeed > 0 && curSpeed <= maxWalkSpeed) {
-            animation.CrossFade("Allosaurus_Walk");
+            animate.CrossFade("Allosaurus_Walk");
         } else if (curSpeed > maxWalkSpeed) {
-            animation.CrossFade("Allosaurus_Run");
+            animate.CrossFade("Allosaurus_Run");
         } else {
-            animation.CrossFade("Allosaurus_Idle");
+            animate.CrossFade("Allosaurus_Idle");
         }
     }
 
@@ -79,7 +81,7 @@ public class PredatorAgent : MonoBehaviour {
 
     private void updatePredator() {
         // create a detection radius and find all prey within it
-        Collider[] hitColliders = Physics.OverlapSphere(this.transform.position, 100);
+        Collider[] hitColliders = Physics.OverlapSphere(this.transform.position, visionRadius);
         int preyDetected = 0;
         for (int i = 0; i < hitColliders.Length; i++) {
             GameObject curObject = hitColliders[i].gameObject;
@@ -90,6 +92,10 @@ public class PredatorAgent : MonoBehaviour {
                 Debug.Log("We've seen a prey");
                 agent.SetDestination(curObject.transform.position);
                 agent.speed = maxRunSpeed;
+            }
+
+            if (curObject.tag == "Wall") {
+
             }
         }
 
