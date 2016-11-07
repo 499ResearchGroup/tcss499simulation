@@ -25,8 +25,8 @@ public class CameraController : MonoBehaviour {
     public float maxX = 360.0f;
 
     // Minimum and maximum vertical rotation
-    public float minY = -45.0f;
-    public float maxY = 45.0f;
+    public float minY = -15.0f;
+    public float maxY = 15.0f;
 
     // Adjusts sensitivity of mouse input for camera mouse look
     public float sensX = 100.0f;
