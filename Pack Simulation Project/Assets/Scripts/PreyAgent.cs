@@ -20,7 +20,7 @@ public class PreyAgent : MonoBehaviour {
     private int health;
     private string state;
     private float visionRadius;
-    private int personalSpaceRadius;
+    private float personalSpaceRadius;
 
     // Use this for initialization
     void Start() {
@@ -33,7 +33,7 @@ public class PreyAgent : MonoBehaviour {
         maxWalkSpeed = 5.0f;
         maxRunSpeed = 15.0f;
         visionRadius = 50;
-        personalSpaceRadius = 5;
+		personalSpaceRadius = agent.radius * 2;
         state = "relaxed";
 	}
 	
@@ -106,7 +106,9 @@ public class PreyAgent : MonoBehaviour {
         Vector3 nonFleeCohesion = Vector3.zero;
         int numOfPred = 0;
         int numOfFleeingNeighbors = 0;
-        int numOfNeighbors = 0;
+		int numOfTooCloseFleeingNeighbors = 0;
+		int numOfNonFleeingNeighbors = 0;
+		int numOfTooCloseNonFleeNeighbors = 0;
         for (int i = 0; i < hitColliders.Length; i++) {
             GameObject curObject = hitColliders[i].gameObject;
             if (curObject.tag == "PredatorAgent") {
@@ -119,24 +121,27 @@ public class PreyAgent : MonoBehaviour {
 
             if (curObject.tag == "PreyAgent" && !curObject.Equals(this.gameObject)) {
                 PreyAgent getScript = curObject.GetComponent<PreyAgent>();
-                numOfNeighbors++;
-                nonFleeAlignment += getScript.getVelocity();
-                nonFleeCohesion += getScript.transform.position;
+				if (getScript.state == "fleeing") {
+					numOfFleeingNeighbors++;
+					alignment += getScript.getVelocity ();
+					cohesion += getScript.transform.position;
 
-                float calcDist = Vector3.Distance(this.transform.position, getScript.transform.position);
-                if (calcDist <= personalSpaceRadius) {
-                    nonFleeSeperation += nonFleeSeperation - (this.transform.position - getScript.transform.position);
-                }
-                if (getScript.state == "fleeing") {
-                    numOfFleeingNeighbors++;
-                    alignment += getScript.getVelocity();
-                    cohesion += getScript.transform.position;
+					float calcDistFlee = Vector3.Distance (this.transform.position, getScript.transform.position);
+					if (calcDistFlee <= personalSpaceRadius) {
+						numOfTooCloseFleeingNeighbors++;
+						seperation += ((this.transform.position - getScript.transform.position) / calcDistFlee);
+					}
+				} else {
+					numOfNonFleeingNeighbors++;
+					nonFleeAlignment += getScript.getVelocity ();
+					nonFleeCohesion += getScript.transform.position;
 
-                    float calcDistFlee = Vector3.Distance(this.transform.position, getScript.transform.position);
-                    if (calcDistFlee <= personalSpaceRadius) {
-                        seperation += seperation - (this.transform.position - getScript.transform.position);
-                    }
-                }
+					float calcDist = Vector3.Distance (this.transform.position, getScript.transform.position);
+					if (calcDist <= personalSpaceRadius) {
+						numOfTooCloseNonFleeNeighbors++;
+						nonFleeSeperation += ((this.transform.position - getScript.transform.position) / calcDist);
+					}
+				}
             }
         }
 
@@ -154,47 +159,67 @@ public class PreyAgent : MonoBehaviour {
         // we don't see predators but we see fellow prey that are fleeing... 
         // use boids model for flock simulation
             state = "alarmed";
+			agent.ResetPath ();
             int sumDetected = numOfFleeingNeighbors;
             alignment = (alignment / sumDetected);
+			Debug.DrawRay(this.transform.position, alignment, Color.yellow);
+			//alignment = Vector3.ClampMagnitude (alignment, maxRunSpeed);
             alignment.Normalize();
 
-            cohesion = (cohesion / sumDetected) - this.transform.position;
+			cohesion = (cohesion / sumDetected) - this.transform.position;
+			Debug.DrawRay(this.transform.position, nonFleeCohesion, Color.magenta);
+			//cohesion = Vector3.ClampMagnitude (cohesion, maxRunSpeed);
             cohesion.Normalize();
 
-            seperation = (seperation / sumDetected) * -1;
-            seperation.Normalize();
+			if (numOfTooCloseFleeingNeighbors > 0) {
+	            seperation = (seperation / sumDetected);
+				//seperation = Vector3.ClampMagnitude (seperation, maxRunSpeed);
+				Debug.DrawRay(this.transform.position, seperation, Color.blue);
+	            seperation.Normalize();
+			}
 
-            agent.SetDestination(this.transform.position + (seperation + cohesion + alignment));
-            agent.speed = maxRunSpeed;
-        } else if (numOfNeighbors > 0) {
+			Vector3 newVelocity = agent.velocity + seperation + cohesion + alignment;
+			newVelocity = Vector3.ClampMagnitude(newVelocity, maxRunSpeed);
+
+			agent.velocity = (newVelocity);
+            //agent.SetDestination(this.transform.position + (seperation + cohesion + alignment));
+            //agent.speed = maxRunSpeed;
+        } else if (numOfNonFleeingNeighbors > 0) {
             // we haven't seen a predator, so make sure our speed isn't too fast
             // then follow the flock
             state = "following herd";
-            int sumDetected = numOfNeighbors;
+			agent.ResetPath ();
+            int sumDetected = numOfNonFleeingNeighbors;
+
             nonFleeAlignment = (nonFleeAlignment / sumDetected);
+			//nonFleeAlignment = Vector3.ClampMagnitude (nonFleeAlignment, maxWalkSpeed);
+			Debug.DrawRay (this.transform.position, nonFleeAlignment, Color.yellow);
             nonFleeAlignment.Normalize();
 
-            nonFleeCohesion = (nonFleeCohesion / sumDetected) - this.transform.position;
-            nonFleeCohesion.Normalize();
+			nonFleeCohesion = (nonFleeCohesion / sumDetected) - this.transform.position;
+			//nonFleeCohesion = Vector3.ClampMagnitude (nonFleeCohesion, maxWalkSpeed);
+			Debug.DrawRay(this.transform.position, nonFleeCohesion, Color.magenta);
+			nonFleeCohesion.Normalize();
 
-            nonFleeSeperation = (nonFleeSeperation / sumDetected) * -1;
-            nonFleeSeperation.Normalize();
+			if (numOfTooCloseNonFleeNeighbors > 0) {
+				nonFleeSeperation = (nonFleeSeperation / numOfTooCloseNonFleeNeighbors);
+				//nonFleeSeperation = Vector3.ClampMagnitude (nonFleeSeperation, maxWalkSpeed);
+				Debug.DrawRay (this.transform.position, nonFleeSeperation, Color.blue);
+				nonFleeSeperation.Normalize();
+			}
 
-            agent.SetDestination(this.transform.position + (nonFleeSeperation + nonFleeCohesion + nonFleeAlignment));
-            agent.speed = maxWalkSpeed;
+			Vector3 newVelocity = agent.velocity + nonFleeSeperation + nonFleeCohesion + nonFleeAlignment;
+			newVelocity = newVelocity * maxWalkSpeed;
+			newVelocity= Vector3.ClampMagnitude (newVelocity, maxWalkSpeed);
+
+			agent.velocity = (newVelocity);
+            //agent.SetDestination(this.transform.position + (nonFleeSeperation + nonFleeCohesion + nonFleeAlignment));
+            //agent.speed = maxWalkSpeed;
         } else {
             state = "relaxed";
             agent.ResetPath();
             agent.speed = maxWalkSpeed;
         }
-
-        // waypoint debug code, now being used to see the vision radius
-        //GameObject waypoint = GameObject.Find("CURRENT_WAYPOINT_DEBUG_PREY");
-        //waypoint.transform.position = this.transform.position;
-        //WayPointDebugScript wpScript = waypoint.GetComponent<WayPointDebugScript>();
-        //wpScript.updateRadius(visionRadius);
-        // end of waypoint debug code
-
 
         updateEndurance();
     }
