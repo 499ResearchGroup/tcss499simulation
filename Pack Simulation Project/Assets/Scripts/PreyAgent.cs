@@ -16,8 +16,8 @@ public class PreyAgent : MonoBehaviour {
     private float curSpeed;
     private bool selected;
 
-    private double endurance;
-    private int health;
+    private float endurance;
+    private float health;
     private string state;
     private float visionRadius;
     private float personalSpaceRadius;
@@ -26,7 +26,7 @@ public class PreyAgent : MonoBehaviour {
     void Start() {
         agent = GetComponent<NavMeshAgent>();
         agent.autoBraking = false;
-        endurance = 1.0;
+        endurance = 1.0f;
         health = 100;
         animator = GetComponent<Animator>();
         previousPosition = transform.position;
@@ -36,21 +36,23 @@ public class PreyAgent : MonoBehaviour {
 		personalSpaceRadius = agent.radius * 2;
         state = "relaxed";
 	}
-	
-	// Update is called once per frame
-	void Update() {
+
+    // Update is called once per frame
+    void Update() {
         Vector3 curMove = transform.position - previousPosition;
         curSpeed = curMove.magnitude / Time.deltaTime;
         previousPosition = transform.position;
 
         updatePrey();
 
-        if (curSpeed > 0 && curSpeed <= (maxWalkSpeed + 1)) {
-            animator.SetInteger("movement_state", 1);
-        } else if (curSpeed > maxWalkSpeed + 1) {
-            animator.SetInteger("movement_state", 2);
-        } else {
-            animator.SetInteger("movement_state", 0);
+        if (health > 0 && animator.enabled) {
+            if (curSpeed > 0 && curSpeed <= (maxWalkSpeed + 1)) {
+                animator.SetInteger("movement_state", 1);
+            } else if (curSpeed > maxWalkSpeed + 1) {
+                animator.SetInteger("movement_state", 2);
+            } else {
+                animator.SetInteger("movement_state", 0);
+            }
         }
 
     }
@@ -86,12 +88,27 @@ public class PreyAgent : MonoBehaviour {
         selected = false;
     }
 
+    // Allows other agents to sap the endurance of the prey 
+    public void sapEndurance(float reduction) {
+        endurance -= reduction * Time.deltaTime;
+        health -= (10 * Time.deltaTime);
+    }
+
     // Getter function to receive the current agent's velocity in the simulation
     public Vector3 getVelocity() {
         return agent.velocity;
     }
 
     private void updatePrey() {
+        if (health < 25) {
+            exhibitDisabledState();
+        } else {
+            calculateCurrentDestination();
+            updateEndurance();
+        }
+    }
+
+    private void calculateCurrentDestination() {
         // create a detection radius and find all predators within it
         Collider[] hitColliders = Physics.OverlapSphere(this.transform.position, visionRadius);
         Vector3 normalizedCenter = new Vector3(0, 0, 0);
@@ -106,9 +123,9 @@ public class PreyAgent : MonoBehaviour {
         Vector3 nonFleeCohesion = Vector3.zero;
         int numOfPred = 0;
         int numOfFleeingNeighbors = 0;
-		int numOfTooCloseFleeingNeighbors = 0;
-		int numOfNonFleeingNeighbors = 0;
-		int numOfTooCloseNonFleeNeighbors = 0;
+        int numOfTooCloseFleeingNeighbors = 0;
+        int numOfNonFleeingNeighbors = 0;
+        int numOfTooCloseNonFleeNeighbors = 0;
         for (int i = 0; i < hitColliders.Length; i++) {
             GameObject curObject = hitColliders[i].gameObject;
             if (curObject.tag == "PredatorAgent") {
@@ -121,27 +138,27 @@ public class PreyAgent : MonoBehaviour {
 
             if (curObject.tag == "PreyAgent" && !curObject.Equals(this.gameObject)) {
                 PreyAgent getScript = curObject.GetComponent<PreyAgent>();
-				if (getScript.state == "fleeing") {
-					numOfFleeingNeighbors++;
-					alignment += getScript.getVelocity ();
-					cohesion += getScript.transform.position;
+                if (getScript.state == "fleeing") {
+                    numOfFleeingNeighbors++;
+                    alignment += getScript.getVelocity();
+                    cohesion += getScript.transform.position;
 
-					float calcDistFlee = Vector3.Distance (this.transform.position, getScript.transform.position);
-					if (calcDistFlee <= personalSpaceRadius) {
-						numOfTooCloseFleeingNeighbors++;
-						seperation += ((this.transform.position - getScript.transform.position) / calcDistFlee);
-					}
-				} else {
-					numOfNonFleeingNeighbors++;
-					nonFleeAlignment += getScript.getVelocity ();
-					nonFleeCohesion += getScript.transform.position;
+                    float calcDistFlee = Vector3.Distance(this.transform.position, getScript.transform.position);
+                    if (calcDistFlee <= personalSpaceRadius) {
+                        numOfTooCloseFleeingNeighbors++;
+                        seperation += ((this.transform.position - getScript.transform.position) / calcDistFlee);
+                    }
+                } else {
+                    numOfNonFleeingNeighbors++;
+                    nonFleeAlignment += getScript.getVelocity();
+                    nonFleeCohesion += getScript.transform.position;
 
-					float calcDist = Vector3.Distance (this.transform.position, getScript.transform.position);
-					if (calcDist <= personalSpaceRadius) {
-						numOfTooCloseNonFleeNeighbors++;
-						nonFleeSeperation += ((this.transform.position - getScript.transform.position) / calcDist);
-					}
-				}
+                    float calcDist = Vector3.Distance(this.transform.position, getScript.transform.position);
+                    if (calcDist <= personalSpaceRadius) {
+                        numOfTooCloseNonFleeNeighbors++;
+                        nonFleeSeperation += ((this.transform.position - getScript.transform.position) / calcDist);
+                    }
+                }
             }
         }
 
@@ -156,82 +173,78 @@ public class PreyAgent : MonoBehaviour {
             agent.SetDestination(hit.position);
             agent.speed = maxRunSpeed;
         } else if (numOfFleeingNeighbors > 0) {
-        // we don't see predators but we see fellow prey that are fleeing... 
-        // use boids model for flock simulation
+            // we don't see predators but we see fellow prey that are fleeing... 
+            // use boids model for flock simulation
             state = "alarmed";
-			agent.ResetPath ();
+            agent.ResetPath();
             int sumDetected = numOfFleeingNeighbors;
             alignment = (alignment / sumDetected);
-			Debug.DrawRay(this.transform.position, alignment, Color.yellow);
-			//alignment = Vector3.ClampMagnitude (alignment, maxRunSpeed);
+            Debug.DrawRay(this.transform.position, alignment, Color.yellow);
             alignment.Normalize();
+            alignment *= 0.5f;
 
-			cohesion = (cohesion / sumDetected) - this.transform.position;
-			Debug.DrawRay(this.transform.position, nonFleeCohesion, Color.magenta);
-			//cohesion = Vector3.ClampMagnitude (cohesion, maxRunSpeed);
+            cohesion = (cohesion / sumDetected) - this.transform.position;
+            Debug.DrawRay(this.transform.position, nonFleeCohesion, Color.magenta);
             cohesion.Normalize();
+            cohesion *= 0.1f;
 
-			if (numOfTooCloseFleeingNeighbors > 0) {
-	            seperation = (seperation / sumDetected);
-				//seperation = Vector3.ClampMagnitude (seperation, maxRunSpeed);
-				Debug.DrawRay(this.transform.position, seperation, Color.blue);
-	            seperation.Normalize();
-			}
+            if (numOfTooCloseFleeingNeighbors > 0) {
+                seperation = (seperation / sumDetected);
+                Debug.DrawRay(this.transform.position, seperation, Color.blue);
+                seperation.Normalize();
+                seperation *= 0.5f;
+            }
 
-			Vector3 newVelocity = agent.velocity + seperation + cohesion + alignment;
-			newVelocity = Vector3.ClampMagnitude(newVelocity, maxRunSpeed);
+            Vector3 newVelocity = agent.velocity + seperation + cohesion + alignment;
+            newVelocity = Vector3.ClampMagnitude(newVelocity, (maxRunSpeed * endurance));
 
-			agent.velocity = (newVelocity);
-            //agent.SetDestination(this.transform.position + (seperation + cohesion + alignment));
-            //agent.speed = maxRunSpeed;
+            agent.velocity = (newVelocity);
         } else if (numOfNonFleeingNeighbors > 0) {
             // we haven't seen a predator, so make sure our speed isn't too fast
             // then follow the flock
             state = "following herd";
-			agent.ResetPath ();
+            agent.ResetPath();
             int sumDetected = numOfNonFleeingNeighbors;
 
             nonFleeAlignment = (nonFleeAlignment / sumDetected);
-			//nonFleeAlignment = Vector3.ClampMagnitude (nonFleeAlignment, maxWalkSpeed);
-			Debug.DrawRay (this.transform.position, nonFleeAlignment, Color.yellow);
+            Debug.DrawRay(this.transform.position, nonFleeAlignment, Color.yellow);
             nonFleeAlignment.Normalize();
+            nonFleeAlignment *= 0.3f;
 
-			nonFleeCohesion = (nonFleeCohesion / sumDetected) - this.transform.position;
-			//nonFleeCohesion = Vector3.ClampMagnitude (nonFleeCohesion, maxWalkSpeed);
-			Debug.DrawRay(this.transform.position, nonFleeCohesion, Color.magenta);
-			nonFleeCohesion.Normalize();
+            nonFleeCohesion = (nonFleeCohesion / sumDetected) - this.transform.position;
+            Debug.DrawRay(this.transform.position, nonFleeCohesion, Color.magenta);
+            nonFleeCohesion.Normalize();
+            nonFleeCohesion *= 0.1f;
 
-			if (numOfTooCloseNonFleeNeighbors > 0) {
-				nonFleeSeperation = (nonFleeSeperation / numOfTooCloseNonFleeNeighbors);
-				//nonFleeSeperation = Vector3.ClampMagnitude (nonFleeSeperation, maxWalkSpeed);
-				Debug.DrawRay (this.transform.position, nonFleeSeperation, Color.blue);
-				nonFleeSeperation.Normalize();
-			}
+            if (numOfTooCloseNonFleeNeighbors > 0) {
+                nonFleeSeperation = (nonFleeSeperation / numOfTooCloseNonFleeNeighbors);
+                Debug.DrawRay(this.transform.position, nonFleeSeperation, Color.blue);
+                nonFleeSeperation.Normalize();
+                nonFleeSeperation *= 1.0f;
+            }
 
-			Vector3 newVelocity = agent.velocity + nonFleeSeperation + nonFleeCohesion + nonFleeAlignment;
-			newVelocity = newVelocity * maxWalkSpeed;
-			newVelocity= Vector3.ClampMagnitude (newVelocity, maxWalkSpeed);
+            Vector3 newVelocity = agent.velocity + nonFleeSeperation + nonFleeCohesion + nonFleeAlignment;
+            newVelocity = newVelocity * maxWalkSpeed;
+            newVelocity = Vector3.ClampMagnitude(newVelocity, (maxWalkSpeed * endurance));
 
-			agent.velocity = (newVelocity);
-            //agent.SetDestination(this.transform.position + (nonFleeSeperation + nonFleeCohesion + nonFleeAlignment));
-            //agent.speed = maxWalkSpeed;
+            agent.velocity = (newVelocity);
         } else {
+            // we haven't seen anything, including fellow prey
+            // sample a random point in a small fixed circle and walk to it
             state = "relaxed";
             agent.ResetPath();
             agent.speed = maxWalkSpeed;
         }
-
-        updateEndurance();
     }
 
     private void updateEndurance() {
 
         if (curSpeed >= maxWalkSpeed) {
-            endurance -= 0.01 * Time.deltaTime;
+            endurance -= 0.01f * Time.deltaTime;
         }
 
         if (curSpeed <= maxWalkSpeed) {
-            endurance += 0.01 * Time.deltaTime;
+            endurance += 0.01f * Time.deltaTime;
         }
 
         if (endurance < 0) {
@@ -243,6 +256,15 @@ public class PreyAgent : MonoBehaviour {
         }
 
         agent.speed = (float) (agent.speed * endurance);
+    }
+
+    private void exhibitDisabledState() {
+        agent.speed = 0;
+        agent.ResetPath();
+        transform.Rotate(new Vector3(transform.rotation.x, transform.rotation.y, 90));
+        BoxCollider collide = this.GetComponent<BoxCollider>();
+        animator.enabled = false;
+        collide.enabled = false;
     }
 
 }

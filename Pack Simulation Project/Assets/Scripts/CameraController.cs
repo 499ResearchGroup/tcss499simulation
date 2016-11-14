@@ -25,8 +25,8 @@ public class CameraController : MonoBehaviour {
     public float maxX = 360.0f;
 
     // Minimum and maximum vertical rotation
-    public float minY = -15.0f;
-    public float maxY = 15.0f;
+    public float minY = -90.0f;
+    public float maxY = 90.0f;
 
     // Adjusts sensitivity of mouse input for camera mouse look
     public float sensX = 100.0f;
@@ -68,6 +68,8 @@ public class CameraController : MonoBehaviour {
             }
             target = null;
         }
+
+        checkScreenshotInput();
     }
 
     public void changeObjectFocus(Transform agentPos) {
@@ -137,6 +139,13 @@ public class CameraController : MonoBehaviour {
         transform.position = new Vector3(transform.position.x, currentHeight, transform.position.z);
 
         // Always look at the target
-        transform.LookAt(target);
+        //transform.LookAt(target);
+    }
+
+    private void checkScreenshotInput() {
+        if (Input.GetKey(KeyCode.P)) {
+            Application.CaptureScreenshot(Application.persistentDataPath + "Assets/Screenshots/screenshot.png", 4);
+            Debug.Log("Screenshot saved to: " + Application.persistentDataPath);
+        }
     }
 }
