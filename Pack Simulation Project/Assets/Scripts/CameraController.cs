@@ -144,8 +144,8 @@ public class CameraController : MonoBehaviour {
 
     private void checkScreenshotInput() {
         if (Input.GetKey(KeyCode.P)) {
-            Application.CaptureScreenshot(Application.persistentDataPath + "Assets/Screenshots/screenshot.png", 4);
-            Debug.Log("Screenshot saved to: " + Application.persistentDataPath);
+            //Application.CaptureScreenshot("Assets/Screenshots/screenshot.png", 4);
+            //Debug.Log("Screenshot saved to: " + "Assets/Screenshots/screenshot.png");
         }
     }
 }
