@@ -1,10 +1,12 @@
 fileFormatVersion: 2
 guid: e7ed79f60ca32c640aba10806e9e9b52
-timeCreated: 1477207247
+timeCreated: 1479632310
 licenseType: Free
 MonoImporter:
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - prey: {fileID: 1000010719886246, guid: aba1f5d7c72ba154e8dd62d79e780aee, type: 2}
+  - predator: {fileID: 1000010869203506, guid: e4a5da0f2a906344e802c31ec98d9ea8, type: 2}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 
