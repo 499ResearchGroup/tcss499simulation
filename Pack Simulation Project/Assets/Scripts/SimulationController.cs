@@ -30,6 +30,8 @@ public class SimulationController : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
+        Time.timeScale = 1.0f;
+
         initGroup(prey, Config.PREY_COUNT, Config.PREY_SPREAD, Config.PREY_DISTANCE, Config.GEN_RANDOM_SEED);
         initGroup(predator, Config.PREDATOR_COUNT, Config.PREDATOR_SPREAD, Config.PREDATOR_DISTANCE, Config.GEN_RANDOM_SEED);     
     }

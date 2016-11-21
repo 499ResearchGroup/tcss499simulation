@@ -186,7 +186,7 @@ public class PreyAgent : MonoBehaviour {
             alignment *= 0.5f;
 
             cohesion = (cohesion / sumDetected) - this.transform.position;
-            Debug.DrawRay(this.transform.position, nonFleeCohesion, Color.magenta);
+            Debug.DrawRay(this.transform.position, cohesion, Color.magenta);
             cohesion.Normalize();
             cohesion *= 0.1f;
 

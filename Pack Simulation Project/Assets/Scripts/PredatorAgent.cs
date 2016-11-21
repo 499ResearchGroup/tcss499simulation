@@ -133,6 +133,8 @@ public class PredatorAgent : MonoBehaviour {
         // steer to move towards the avg position of flockmates
         Vector3 cohesion = Vector3.zero;
 
+        float weightSum = 0.0f;
+
         // store the closest prey for calculating which prey to chase and the closest distance
         GameObject closestPrey = null;
         float closestDist = Mathf.Infinity;
@@ -144,27 +146,20 @@ public class PredatorAgent : MonoBehaviour {
             if (curObject.tag == "PreyAgent") {
                 PreyAgent getScript = curObject.GetComponent<PreyAgent>();
                 preyDetected++;
-                float curDist = Vector3.Distance(this.transform.position, curObject.transform.position);
-                if (curDist < closestDist) {
-                    closestPrey = curObject;
-                    closestDist = curDist;
-                }
-
                 float calcDist = Vector3.Distance(this.transform.position, getScript.transform.position);
-                if (calcDist <= personalSpaceRadius) {
-                    seperation += (this.transform.position - getScript.transform.position) / calcDist;
-                    tooCloseNeighbors++;
+                if (calcDist < closestDist) {
+                    closestPrey = curObject;
+                    closestDist = calcDist;
                 }
 
                 alignment += getScript.getVelocity();
-                cohesion += getScript.transform.position;
+                //cohesion += getScript.transform.position * (1 / calcDist * calcDist);
+                //weightSum += (1 / calcDist * calcDist);
             }
 
             // if we see a predator
             if (curObject.tag == "PredatorAgent") {
                 PredatorAgent getScript = curObject.GetComponent<PredatorAgent>();
-                alignment += getScript.getVelocity();
-                cohesion += getScript.transform.position;
 
                 float calcDist = Vector3.Distance(this.transform.position, getScript.transform.position);
                 if (calcDist <= personalSpaceRadius) {
@@ -174,8 +169,6 @@ public class PredatorAgent : MonoBehaviour {
                 predatorsDetected++;
             }
         }
-
-        int sumDetected = preyDetected + predatorsDetected;
 
         // if we've seen a prey chase the closest prey
         if (preyDetected > 0 && closestPrey != null) {
@@ -191,24 +184,28 @@ public class PredatorAgent : MonoBehaviour {
             // if we're not in focus range, chase the avg position of the pack 
             } else {
                 agent.ResetPath();
-                alignment = (alignment / sumDetected);
+                alignment = (alignment / preyDetected);
                 Debug.DrawRay(this.transform.position, alignment, Color.yellow);
                 alignment.Normalize();
-                alignment *= 0.5f;
+                alignment *= 0.25f;
 
-                cohesion = (cohesion / sumDetected) - this.transform.position;
+                //Debug.Log("Weight sum: " + weightSum);
+                // cohesion = (cohesion / preyDetected) - this.transform.position);
+                //cohesion = (cohesion / (weightSum)) - this.transform.position;
+                cohesion = closestPrey.transform.position - this.transform.position;
                 Debug.DrawRay(this.transform.position, cohesion, Color.magenta);
                 cohesion.Normalize();
-                cohesion *= 0.1f;
+                cohesion *= 0.9f;
+                Debug.Log("Cohesion vector: " + cohesion);
 
                 if (tooCloseNeighbors > 0) {
-                    seperation = (seperation / sumDetected);
+                    seperation = (seperation / predatorsDetected);
                     Debug.DrawRay(this.transform.position, seperation, Color.blue);
                     seperation.Normalize();
                     seperation *= 0.5f;
                 }
 
-                Vector3 newVelocity = agent.velocity + seperation + cohesion + alignment;
+                Vector3 newVelocity = agent.velocity + cohesion + alignment + seperation;
                 newVelocity = Vector3.ClampMagnitude(newVelocity, (float) maxRunSpeed * endurance);
 
                 agent.velocity = (newVelocity);
