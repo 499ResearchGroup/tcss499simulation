@@ -42,9 +42,9 @@ public class PredatorAgent : MonoBehaviour {
         curTargetName = "NO TARGET SELECTED";
         previousPosition = transform.position;
         endurance = 1.0f;
-        maxWalkSpeed = 5;
-        maxRunSpeed = 12.5f;
-        visionRadius = 100;
+        maxWalkSpeed = Config.PREDATOR_WALK_SPEED;
+        maxRunSpeed = Config.PREDATOR_RUN_SPEED;
+        visionRadius = Config.PREDATOR_VISION_RADIUS;
         personalSpaceRadius = 500;
         focusRadius = 25;
         killRange = 7.5f;

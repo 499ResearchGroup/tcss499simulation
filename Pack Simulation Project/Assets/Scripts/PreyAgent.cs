@@ -32,9 +32,9 @@ public class PreyAgent : MonoBehaviour {
         health = 100;
         animator = GetComponent<Animator>();
         previousPosition = transform.position;
-        maxWalkSpeed = 5.0f;
-        maxRunSpeed = 15.0f;
-        visionRadius = 50;
+        maxWalkSpeed = Config.PREY_WALK_SPEED;
+        maxRunSpeed = Config.PREY_RUN_SPEED;
+        visionRadius = Config.PREY_VISION_RADIUS;
 		personalSpaceRadius = agent.radius * 2;
         state = "relaxed";
 	}
