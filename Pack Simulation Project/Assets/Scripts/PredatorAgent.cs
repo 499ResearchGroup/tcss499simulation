@@ -46,8 +46,8 @@ public class PredatorAgent : MonoBehaviour {
         maxRunSpeed = Config.PREDATOR_RUN_SPEED;
         visionRadius = Config.PREDATOR_VISION_RADIUS;
         personalSpaceRadius = 500;
-        focusRadius = 25;
-        killRange = 7.5f;
+        focusRadius = 35;
+        killRange = 10.5f;
         predatorState = 0;
         attackTime = 0.5f;
         attackTimeStampInitiated = Time.time;
@@ -128,10 +128,13 @@ public class PredatorAgent : MonoBehaviour {
 
         // seperate our boids so they dont get too close
         Vector3 seperation = Vector3.zero;
+		Vector3 predOnlySeperation = Vector3.zero;
         // align our boids so we're moving in the same direction
         Vector3 alignment = Vector3.zero;
+		Vector3 predOnlyAlignment = Vector3.zero;
         // steer to move towards the avg position of flockmates
         Vector3 cohesion = Vector3.zero;
+		Vector3 predOnlyCohesion = Vector3.zero;
 
         float weightSum = 0.0f;
 
@@ -160,10 +163,13 @@ public class PredatorAgent : MonoBehaviour {
             // if we see a predator
             if (curObject.tag == "PredatorAgent") {
                 PredatorAgent getScript = curObject.GetComponent<PredatorAgent>();
+				predOnlyAlignment += getScript.getVelocity ();
+				predOnlyCohesion += getScript.transform.position;
 
                 float calcDist = Vector3.Distance(this.transform.position, getScript.transform.position);
                 if (calcDist <= personalSpaceRadius) {
-                    seperation += (this.transform.position - getScript.transform.position) / calcDist;
+					predOnlySeperation += (this.transform.position - getScript.transform.position);
+                    seperation += (this.transform.position - getScript.transform.position);
                     tooCloseNeighbors++;
                 }
                 predatorsDetected++;
@@ -196,7 +202,7 @@ public class PredatorAgent : MonoBehaviour {
                 Debug.DrawRay(this.transform.position, cohesion, Color.magenta);
                 cohesion.Normalize();
                 cohesion *= 0.9f;
-                Debug.Log("Cohesion vector: " + cohesion);
+                //Debug.Log("Cohesion vector: " + cohesion);
 
                 if (tooCloseNeighbors > 0) {
                     seperation = (seperation / predatorsDetected);
@@ -210,23 +216,38 @@ public class PredatorAgent : MonoBehaviour {
 
                 agent.velocity = (newVelocity);
             }
-        // else we haven't seen any prey, maneuver in a search radius
-        //
-        // TO-DO: chase avg predator flock position? 
+        // else we haven't seen any prey, attempt to flock with fellow predators
         } else {
             curTargetName = "NO TARGET SELECTED";
             agent.ResetPath();
+			if (predatorsDetected > 0) {
+				cohesion = (cohesion / predatorsDetected) - this.transform.position;
+				cohesion.Normalize ();
+				cohesion *= 0.5f;
+				alignment = (alignment / predatorsDetected);
+				alignment.Normalize ();
+				alignment *= 0.1f;
+				if (tooCloseNeighbors > 0) {
+					seperation = (seperation / predatorsDetected);
+					seperation.Normalize ();
+					seperation *= 0.9f;
+					Debug.DrawRay (this.transform.position, seperation, Color.blue);
+				}
+				agent.velocity = Vector3.ClampMagnitude (agent.velocity + cohesion + alignment + seperation, (float) maxWalkSpeed * endurance);
+			} else {
+				agent.velocity = agent.velocity;
+			}
         }
     }
 
     private void initiateAttack(GameObject closestPrey) {
         PreyAgent getPreyScript = closestPrey.GetComponent<PreyAgent>();
-        getPreyScript.sapEndurance(0.10f);
 
         // if the current time is greater than (initiated + attackTime), we can attack
         if (Time.time >= (attackTimeStampInitiated + attackTime)) {
             predatorState = 1;
             attackTimeStampInitiated = Time.time;
+			getPreyScript.bitePrey();
         } 
     }
 

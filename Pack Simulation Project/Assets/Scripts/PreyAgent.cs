@@ -23,6 +23,7 @@ public class PreyAgent : MonoBehaviour {
     private string state;
     private float visionRadius;
     private float personalSpaceRadius;
+	private float enduranceScalar;
 
     // Use this for initialization
     void Start() {
@@ -35,6 +36,7 @@ public class PreyAgent : MonoBehaviour {
         maxWalkSpeed = Config.PREY_WALK_SPEED;
         maxRunSpeed = Config.PREY_RUN_SPEED;
         visionRadius = Config.PREY_VISION_RADIUS;
+		enduranceScalar = 0.999f;
 		personalSpaceRadius = agent.radius * 2;
         state = "relaxed";
 	}
@@ -90,9 +92,10 @@ public class PreyAgent : MonoBehaviour {
         selected = false;
     }
 
-    // Allows other agents to sap the endurance of the prey 
-    public void sapEndurance(float reduction) {
-        endurance -= reduction * Time.deltaTime;
+    // Allows other agents to sap the endurance of the prey, simulating a bite
+    public void bitePrey() {
+		endurance *= enduranceScalar;
+		enduranceScalar = Mathf.Pow (enduranceScalar, 3);
         health -= (10 * Time.deltaTime);
     }
 
@@ -234,8 +237,11 @@ public class PreyAgent : MonoBehaviour {
             // we haven't seen anything, including fellow prey
             // sample a random point in a small fixed circle and walk to it
             state = "relaxed";
-            agent.ResetPath();
-            agent.speed = maxWalkSpeed;
+			agent.ResetPath ();
+
+			// NOT a redundant line, captures agent velocity when exiting flock behavior or when exiting
+			// repulsion from predators causing our prey to continue to move 
+			agent.velocity = agent.velocity; 
         }
     }
 
