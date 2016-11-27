@@ -45,7 +45,7 @@ public class PredatorAgent : MonoBehaviour {
         maxWalkSpeed = Config.PREDATOR_WALK_SPEED;
         maxRunSpeed = Config.PREDATOR_RUN_SPEED;
         visionRadius = Config.PREDATOR_VISION_RADIUS;
-        personalSpaceRadius = 500;
+        personalSpaceRadius = agent.radius * 2;
         focusRadius = 35;
         killRange = 10.5f;
         predatorState = 0;
@@ -111,132 +111,72 @@ public class PredatorAgent : MonoBehaviour {
     }
 
     private void updatePredator() {
-        calculateCurrentDestination();
+        //calculateCurrentDestination();
+        calculateForces();
         updateEndurance();
         checkAttackStatus();
     }
 
-    // Calculates the Predator's new destination based on a modified Boids model. 
-    private void calculateCurrentDestination() {
-        // Create a detection radius and find all prey within it
+
+    private void calculateForces() {
+        // create a detection radius and find all relevant agents within it
         Collider[] hitColliders = Physics.OverlapSphere(this.transform.position, visionRadius);
 
-        // store how many prey and friendly predators we detect
-        int preyDetected = 0;
-        int predatorsDetected = 0;
-        int tooCloseNeighbors = 0;
-
-        // seperate our boids so they dont get too close
-        Vector3 seperation = Vector3.zero;
-		Vector3 predOnlySeperation = Vector3.zero;
-        // align our boids so we're moving in the same direction
+        // force vectors 
         Vector3 alignment = Vector3.zero;
-		Vector3 predOnlyAlignment = Vector3.zero;
-        // steer to move towards the avg position of flockmates
         Vector3 cohesion = Vector3.zero;
-		Vector3 predOnlyCohesion = Vector3.zero;
+        Vector3 seperation = Vector3.zero;
+        Vector3 attraction = Vector3.zero;
 
-        float weightSum = 0.0f;
-
-        // store the closest prey for calculating which prey to chase and the closest distance
+        // counter used to track number of prey within radius
+        int preyDetected = 0;
+        int predatorsDetected = 1;
         GameObject closestPrey = null;
         float closestDist = Mathf.Infinity;
 
+        // loop through all of the things we've collided with
         for (int i = 0; i < hitColliders.Length; i++) {
             GameObject curObject = hitColliders[i].gameObject;
 
-            // if we see a prey
             if (curObject.tag == "PreyAgent") {
-                PreyAgent getScript = curObject.GetComponent<PreyAgent>();
                 preyDetected++;
-                float calcDist = Vector3.Distance(this.transform.position, getScript.transform.position);
-                if (calcDist < closestDist) {
-                    closestPrey = curObject;
-                    closestDist = calcDist;
-                }
 
-                alignment += getScript.getVelocity();
-                //cohesion += getScript.transform.position * (1 / calcDist * calcDist);
-                //weightSum += (1 / calcDist * calcDist);
+                float distToPrey = Vector3.Distance(curObject.transform.position, this.transform.position);
+                if (distToPrey < closestDist) {
+                    closestPrey = curObject;
+                }
+                //attraction += (curObject.transform.position - this.transform.position) / (distToPrey);
             }
 
-            // if we see a predator
-            if (curObject.tag == "PredatorAgent") {
-                PredatorAgent getScript = curObject.GetComponent<PredatorAgent>();
-				predOnlyAlignment += getScript.getVelocity ();
-				predOnlyCohesion += getScript.transform.position;
-
-                float calcDist = Vector3.Distance(this.transform.position, getScript.transform.position);
-                if (calcDist <= personalSpaceRadius) {
-					predOnlySeperation += (this.transform.position - getScript.transform.position);
-                    seperation += (this.transform.position - getScript.transform.position);
-                    tooCloseNeighbors++;
-                }
+            if (curObject.tag == "PredatorAgent" && !curObject.Equals(this)) {
                 predatorsDetected++;
+                alignment += curObject.GetComponent<PredatorAgent>().getVelocity();
+                cohesion += curObject.transform.position;
+                if (Vector3.Distance(this.transform.position, curObject.transform.position) <= personalSpaceRadius) {
+                    seperation -= (curObject.transform.position - this.transform.position);
+                }
             }
         }
 
-        // if we've seen a prey chase the closest prey
-        if (preyDetected > 0 && closestPrey != null) {
-            // if we're close to a prey, zero in on it
-            if (closestDist <= focusRadius) {
-                //Debug.Log("Closest Dist: " + closestDist + ", FocusRadius: " + focusRadius);
-                agent.SetDestination(closestPrey.transform.position);
-                agent.speed = maxRunSpeed;
-                // if we're in kill range to the closest prey, kill it
-                if (closestDist <= killRange) {
-                    initiateAttack(closestPrey);
-                }
-            // if we're not in focus range, chase the avg position of the pack 
-            } else {
-                agent.ResetPath();
-                alignment = (alignment / preyDetected);
-                Debug.DrawRay(this.transform.position, alignment, Color.yellow);
-                alignment.Normalize();
-                alignment *= 0.25f;
+        cohesion /= predatorsDetected;
+        alignment /= predatorsDetected;
 
-                //Debug.Log("Weight sum: " + weightSum);
-                // cohesion = (cohesion / preyDetected) - this.transform.position);
-                //cohesion = (cohesion / (weightSum)) - this.transform.position;
-                cohesion = closestPrey.transform.position - this.transform.position;
-                Debug.DrawRay(this.transform.position, cohesion, Color.magenta);
-                cohesion.Normalize();
-                cohesion *= 0.9f;
-                //Debug.Log("Cohesion vector: " + cohesion);
-
-                if (tooCloseNeighbors > 0) {
-                    seperation = (seperation / predatorsDetected);
-                    Debug.DrawRay(this.transform.position, seperation, Color.blue);
-                    seperation.Normalize();
-                    seperation *= 0.5f;
-                }
-
-                Vector3 newVelocity = agent.velocity + cohesion + alignment + seperation;
-                newVelocity = Vector3.ClampMagnitude(newVelocity, (float) maxRunSpeed * endurance);
-
-                agent.velocity = (newVelocity);
-            }
-        // else we haven't seen any prey, attempt to flock with fellow predators
+        if (preyDetected > 0) {
+            attraction = (closestPrey.transform.position - this.transform.position);
+            alignment *= 0.1f;
+            seperation *= 0.1f;
+            cohesion *= 0.05f;
+            attraction *= 50;
+            checkIfInKillRange(closestDist, closestPrey);
+            agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + attraction, maxRunSpeed * endurance);
         } else {
-            curTargetName = "NO TARGET SELECTED";
-            agent.ResetPath();
-			if (predatorsDetected > 0) {
-				cohesion = (cohesion / predatorsDetected) - this.transform.position;
-				cohesion.Normalize ();
-				cohesion *= 0.5f;
-				alignment = (alignment / predatorsDetected);
-				alignment.Normalize ();
-				alignment *= 0.1f;
-				if (tooCloseNeighbors > 0) {
-					seperation = (seperation / predatorsDetected);
-					seperation.Normalize ();
-					seperation *= 0.9f;
-					Debug.DrawRay (this.transform.position, seperation, Color.blue);
-				}
-				agent.velocity = Vector3.ClampMagnitude (agent.velocity + cohesion + alignment + seperation, (float) maxWalkSpeed * endurance);
-			} else {
-				agent.velocity = agent.velocity;
-			}
+            agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation, maxWalkSpeed * endurance);
+        }
+    }
+
+    private void checkIfInKillRange(float closestDist, GameObject prey) {
+        if (closestDist <= killRange) {
+            initiateAttack(prey);
         }
     }
 
@@ -278,5 +218,129 @@ public class PredatorAgent : MonoBehaviour {
         }
 
         agent.speed = (float)(agent.speed * endurance);
+    }
+
+    // DEPRECATED VERSION OF PREDATOR BEHAVIOR: USE FOR REFERENCE ONLY
+    private void calculateCurrentDestination() {
+        // Create a detection radius and find all prey within it
+        Collider[] hitColliders = Physics.OverlapSphere(this.transform.position, visionRadius);
+
+        // store how many prey and friendly predators we detect
+        int preyDetected = 0;
+        int predatorsDetected = 0;
+        int tooCloseNeighbors = 0;
+
+        // seperate our boids so they dont get too close
+        Vector3 seperation = Vector3.zero;
+        Vector3 predOnlySeperation = Vector3.zero;
+        // align our boids so we're moving in the same direction
+        Vector3 alignment = Vector3.zero;
+        Vector3 predOnlyAlignment = Vector3.zero;
+        // steer to move towards the avg position of flockmates
+        Vector3 cohesion = Vector3.zero;
+        Vector3 predOnlyCohesion = Vector3.zero;
+
+        float weightSum = 0.0f;
+
+        // store the closest prey for calculating which prey to chase and the closest distance
+        GameObject closestPrey = null;
+        float closestDist = Mathf.Infinity;
+
+        for (int i = 0; i < hitColliders.Length; i++) {
+            GameObject curObject = hitColliders[i].gameObject;
+
+            // if we see a prey
+            if (curObject.tag == "PreyAgent") {
+                PreyAgent getScript = curObject.GetComponent<PreyAgent>();
+                preyDetected++;
+                float calcDist = Vector3.Distance(this.transform.position, getScript.transform.position);
+                if (calcDist < closestDist) {
+                    closestPrey = curObject;
+                    closestDist = calcDist;
+                }
+
+                alignment += getScript.getVelocity();
+                //cohesion += getScript.transform.position * (1 / calcDist * calcDist);
+                //weightSum += (1 / calcDist * calcDist);
+            }
+
+            // if we see a predator
+            if (curObject.tag == "PredatorAgent") {
+                PredatorAgent getScript = curObject.GetComponent<PredatorAgent>();
+                predOnlyAlignment += getScript.getVelocity();
+                predOnlyCohesion += getScript.transform.position;
+
+                float calcDist = Vector3.Distance(this.transform.position, getScript.transform.position);
+                if (calcDist <= personalSpaceRadius) {
+                    predOnlySeperation += (this.transform.position - getScript.transform.position);
+                    seperation += (this.transform.position - getScript.transform.position);
+                    tooCloseNeighbors++;
+                }
+                predatorsDetected++;
+            }
+        }
+
+        // if we've seen a prey chase the closest prey
+        if (preyDetected > 0 && closestPrey != null) {
+            // if we're close to a prey, zero in on it
+            if (closestDist <= focusRadius) {
+                //Debug.Log("Closest Dist: " + closestDist + ", FocusRadius: " + focusRadius);
+                agent.SetDestination(closestPrey.transform.position);
+                agent.speed = maxRunSpeed;
+                // if we're in kill range to the closest prey, kill it
+                if (closestDist <= killRange) {
+                    initiateAttack(closestPrey);
+                }
+                // if we're not in focus range, chase the avg position of the pack 
+            } else {
+                agent.ResetPath();
+                alignment = (alignment / preyDetected);
+                Debug.DrawRay(this.transform.position, alignment, Color.yellow);
+                alignment.Normalize();
+                alignment *= 0.25f;
+
+                //Debug.Log("Weight sum: " + weightSum);
+                // cohesion = (cohesion / preyDetected) - this.transform.position);
+                //cohesion = (cohesion / (weightSum)) - this.transform.position;
+                cohesion = closestPrey.transform.position - this.transform.position;
+                Debug.DrawRay(this.transform.position, cohesion, Color.magenta);
+                cohesion.Normalize();
+                cohesion *= 0.9f;
+                //Debug.Log("Cohesion vector: " + cohesion);
+
+                if (tooCloseNeighbors > 0) {
+                    seperation = (seperation / predatorsDetected);
+                    Debug.DrawRay(this.transform.position, seperation, Color.blue);
+                    seperation.Normalize();
+                    seperation *= 0.5f;
+                }
+
+                Vector3 newVelocity = agent.velocity + cohesion + alignment + seperation;
+                newVelocity = Vector3.ClampMagnitude(newVelocity, (float)maxRunSpeed * endurance);
+
+                agent.velocity = (newVelocity);
+            }
+            // else we haven't seen any prey, attempt to flock with fellow predators
+        } else {
+            curTargetName = "NO TARGET SELECTED";
+            agent.ResetPath();
+            if (predatorsDetected > 0) {
+                cohesion = (cohesion / predatorsDetected) - this.transform.position;
+                cohesion.Normalize();
+                cohesion *= 0.5f;
+                alignment = (alignment / predatorsDetected);
+                alignment.Normalize();
+                alignment *= 0.1f;
+                if (tooCloseNeighbors > 0) {
+                    seperation = (seperation / predatorsDetected);
+                    seperation.Normalize();
+                    seperation *= 0.9f;
+                    Debug.DrawRay(this.transform.position, seperation, Color.blue);
+                }
+                agent.velocity = Vector3.ClampMagnitude(agent.velocity + cohesion + alignment + seperation, (float)maxWalkSpeed * endurance);
+            } else {
+                agent.velocity = agent.velocity;
+            }
+        }
     }
 }

@@ -108,11 +108,90 @@ public class PreyAgent : MonoBehaviour {
         if (health < 25) {
             exhibitDisabledState();
         } else {
-            calculateCurrentDestination();
+            calculateForces();
+            //calculateCurrentDestination();
             updateEndurance();
         }
     }
 
+    // 
+    private void calculateForces() {
+        // create a detection radius and find all relevant agents within it
+        Collider[] hitColliders = Physics.OverlapSphere(this.transform.position, visionRadius);
+
+        // force vectors 
+        Vector3 alignment = Vector3.zero;
+        Vector3 cohesion = Vector3.zero;
+        Vector3 seperation = Vector3.zero;
+        Vector3 repulsion = Vector3.zero;
+
+        // counter used to track number of prey within radius
+        int preyDetected = 1;
+        int predatorsDetected = 0;
+
+        // loop through all of the things we've collided with
+        for (int i = 0; i < hitColliders.Length; i++) {
+            GameObject curObject = hitColliders[i].gameObject;
+
+            if (curObject.tag == "PredatorAgent") {
+                // do something with vectors
+                predatorsDetected++;
+                repulsion += (curObject.transform.position - this.transform.position);
+            }
+
+            if (curObject.tag == "PreyAgent" && !curObject.Equals(this)) {
+                preyDetected++;
+                alignment += curObject.GetComponent<PreyAgent>().getVelocity();
+                cohesion += curObject.transform.position;
+                if (Vector3.Distance(this.transform.position, curObject.transform.position) <= personalSpaceRadius) {
+                    seperation -= (curObject.transform.position - this.transform.position);
+                }
+            }
+        }
+
+        cohesion /= preyDetected;
+        alignment /= preyDetected;
+
+        if (predatorsDetected > 0) {
+            repulsion /= predatorsDetected;
+            repulsion *= -5;
+            agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + repulsion, maxRunSpeed * endurance);
+        } else {
+            agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation, maxWalkSpeed * endurance);
+        }
+    }
+
+    private void updateEndurance() {
+
+        if (curSpeed >= maxWalkSpeed) {
+            endurance -= 0.01f * Time.deltaTime;
+        }
+
+        if (curSpeed <= maxWalkSpeed) {
+            endurance += 0.01f * Time.deltaTime;
+        }
+
+        if (endurance < 0) {
+            endurance = 0;
+        }
+
+        if (endurance > 1) {
+            endurance = 1;
+        }
+
+        agent.speed = (float) (agent.speed * endurance);
+    }
+
+    private void exhibitDisabledState() {
+        agent.speed = 0;
+        agent.ResetPath();
+        transform.Rotate(new Vector3(transform.rotation.x, transform.rotation.y, 90));
+        BoxCollider collide = this.GetComponent<BoxCollider>();
+        animator.enabled = false;
+        collide.enabled = false;
+    }
+
+    // DEPRECATED VERSION OF PREY BEHAVIOR: USE FOR REFERENCE ONLY
     private void calculateCurrentDestination() {
         // create a detection radius and find all predators within it
         Collider[] hitColliders = Physics.OverlapSphere(this.transform.position, visionRadius);
@@ -237,42 +316,12 @@ public class PreyAgent : MonoBehaviour {
             // we haven't seen anything, including fellow prey
             // sample a random point in a small fixed circle and walk to it
             state = "relaxed";
-			agent.ResetPath ();
+            agent.ResetPath();
 
-			// NOT a redundant line, captures agent velocity when exiting flock behavior or when exiting
-			// repulsion from predators causing our prey to continue to move 
-			agent.velocity = agent.velocity; 
+            // NOT a redundant line, captures agent velocity when exiting flock behavior or when exiting
+            // repulsion from predators causing our prey to continue to move 
+            agent.velocity = agent.velocity;
         }
-    }
-
-    private void updateEndurance() {
-
-        if (curSpeed >= maxWalkSpeed) {
-            endurance -= 0.01f * Time.deltaTime;
-        }
-
-        if (curSpeed <= maxWalkSpeed) {
-            endurance += 0.01f * Time.deltaTime;
-        }
-
-        if (endurance < 0) {
-            endurance = 0;
-        }
-
-        if (endurance > 1) {
-            endurance = 1;
-        }
-
-        agent.speed = (float) (agent.speed * endurance);
-    }
-
-    private void exhibitDisabledState() {
-        agent.speed = 0;
-        agent.ResetPath();
-        transform.Rotate(new Vector3(transform.rotation.x, transform.rotation.y, 90));
-        BoxCollider collide = this.GetComponent<BoxCollider>();
-        animator.enabled = false;
-        collide.enabled = false;
     }
 
 }
