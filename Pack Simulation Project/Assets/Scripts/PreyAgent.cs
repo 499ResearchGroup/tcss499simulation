@@ -34,7 +34,8 @@ public class PreyAgent : MonoBehaviour {
         animator = GetComponent<Animator>();
         previousPosition = transform.position;
         maxWalkSpeed = Config.PREY_WALK_SPEED;
-        maxRunSpeed = Config.PREY_RUN_SPEED;
+        //maxRunSpeed = Config.PREY_RUN_SPEED;
+		maxRunSpeed = Random.Range(10.0f, 15.0f);
         visionRadius = Config.PREY_VISION_RADIUS;
 		enduranceScalar = 0.999f;
 		personalSpaceRadius = agent.radius * 2;
@@ -135,8 +136,9 @@ public class PreyAgent : MonoBehaviour {
 
             if (curObject.tag == "PredatorAgent") {
                 // do something with vectors
+				float dist = Vector3.Distance(this.transform.position, curObject.transform.position);
                 predatorsDetected++;
-                repulsion += (curObject.transform.position - this.transform.position);
+				repulsion += (curObject.transform.position - this.transform.position) / (dist * dist * dist);
             }
 
             if (curObject.tag == "PreyAgent" && !curObject.Equals(this)) {
@@ -154,7 +156,7 @@ public class PreyAgent : MonoBehaviour {
 
         if (predatorsDetected > 0) {
             repulsion /= predatorsDetected;
-            repulsion *= -5;
+            repulsion *= -5000;
             agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + repulsion, maxRunSpeed * endurance);
         } else {
             agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation, maxWalkSpeed * endurance);
@@ -190,138 +192,4 @@ public class PreyAgent : MonoBehaviour {
         animator.enabled = false;
         collide.enabled = false;
     }
-
-    // DEPRECATED VERSION OF PREY BEHAVIOR: USE FOR REFERENCE ONLY
-    private void calculateCurrentDestination() {
-        // create a detection radius and find all predators within it
-        Collider[] hitColliders = Physics.OverlapSphere(this.transform.position, visionRadius);
-        Vector3 normalizedCenter = new Vector3(0, 0, 0);
-        // seperate our boids so they dont get too close
-        Vector3 seperation = Vector3.zero;
-        Vector3 nonFleeSeperation = Vector3.zero;
-        // align our boids so we're moving in the same direction
-        Vector3 alignment = Vector3.zero;
-        Vector3 nonFleeAlignment = Vector3.zero;
-        // steer to move towards the avg position of flockmates
-        Vector3 cohesion = Vector3.zero;
-        Vector3 nonFleeCohesion = Vector3.zero;
-        int numOfPred = 0;
-        int numOfFleeingNeighbors = 0;
-        int numOfTooCloseFleeingNeighbors = 0;
-        int numOfNonFleeingNeighbors = 0;
-        int numOfTooCloseNonFleeNeighbors = 0;
-        for (int i = 0; i < hitColliders.Length; i++) {
-            GameObject curObject = hitColliders[i].gameObject;
-            if (curObject.tag == "PredatorAgent") {
-                // if the thing we collided with is a predator
-                //Debug.Log("A Prey's vision has collided with a Predator.");
-                // run away!
-                numOfPred++;
-                normalizedCenter += curObject.transform.position;
-            }
-
-            if (curObject.tag == "PreyAgent" && !curObject.Equals(this.gameObject)) {
-                PreyAgent getScript = curObject.GetComponent<PreyAgent>();
-                if (getScript.state == "fleeing") {
-                    numOfFleeingNeighbors++;
-                    alignment += getScript.getVelocity();
-                    cohesion += getScript.transform.position;
-
-                    float calcDistFlee = Vector3.Distance(this.transform.position, getScript.transform.position);
-                    if (calcDistFlee <= personalSpaceRadius) {
-                        numOfTooCloseFleeingNeighbors++;
-                        seperation += ((this.transform.position - getScript.transform.position) / calcDistFlee);
-                    }
-                } else {
-                    numOfNonFleeingNeighbors++;
-                    nonFleeAlignment += getScript.getVelocity();
-                    nonFleeCohesion += getScript.transform.position;
-
-                    float calcDist = Vector3.Distance(this.transform.position, getScript.transform.position);
-                    if (calcDist <= personalSpaceRadius) {
-                        numOfTooCloseNonFleeNeighbors++;
-                        nonFleeSeperation += ((this.transform.position - getScript.transform.position) / calcDist);
-                    }
-                }
-            }
-        }
-
-        // we've detected a predator! run!
-        if (numOfPred > 0) {
-            state = "fleeing";
-            normalizedCenter = (normalizedCenter / numOfPred);
-            Vector3 moveAway = Vector3.MoveTowards(this.transform.position, normalizedCenter, -1 * Time.deltaTime * maxRunSpeed);
-            NavMeshHit hit;
-            NavMesh.SamplePosition(moveAway, out hit, 5, NavMesh.AllAreas);
-
-            agent.SetDestination(hit.position);
-            agent.speed = maxRunSpeed;
-        } else if (numOfFleeingNeighbors > 0) {
-            // we don't see predators but we see fellow prey that are fleeing... 
-            // use boids model for flock simulation
-            state = "alarmed";
-            agent.ResetPath();
-            int sumDetected = numOfFleeingNeighbors;
-            alignment = (alignment / sumDetected);
-            Debug.DrawRay(this.transform.position, alignment, Color.yellow);
-            alignment.Normalize();
-            alignment *= 0.5f;
-
-            cohesion = (cohesion / sumDetected) - this.transform.position;
-            Debug.DrawRay(this.transform.position, cohesion, Color.magenta);
-            cohesion.Normalize();
-            cohesion *= 0.1f;
-
-            if (numOfTooCloseFleeingNeighbors > 0) {
-                seperation = (seperation / sumDetected);
-                Debug.DrawRay(this.transform.position, seperation, Color.blue);
-                seperation.Normalize();
-                seperation *= 0.5f;
-            }
-
-            Vector3 newVelocity = agent.velocity + seperation + cohesion + alignment;
-            newVelocity = Vector3.ClampMagnitude(newVelocity, (maxRunSpeed * endurance));
-
-            agent.velocity = (newVelocity);
-        } else if (numOfNonFleeingNeighbors > 0) {
-            // we haven't seen a predator, so make sure our speed isn't too fast
-            // then follow the flock
-            state = "following herd";
-            agent.ResetPath();
-            int sumDetected = numOfNonFleeingNeighbors;
-
-            nonFleeAlignment = (nonFleeAlignment / sumDetected);
-            Debug.DrawRay(this.transform.position, nonFleeAlignment, Color.yellow);
-            nonFleeAlignment.Normalize();
-            nonFleeAlignment *= 0.3f;
-
-            nonFleeCohesion = (nonFleeCohesion / sumDetected) - this.transform.position;
-            Debug.DrawRay(this.transform.position, nonFleeCohesion, Color.magenta);
-            nonFleeCohesion.Normalize();
-            nonFleeCohesion *= 0.1f;
-
-            if (numOfTooCloseNonFleeNeighbors > 0) {
-                nonFleeSeperation = (nonFleeSeperation / numOfTooCloseNonFleeNeighbors);
-                Debug.DrawRay(this.transform.position, nonFleeSeperation, Color.blue);
-                nonFleeSeperation.Normalize();
-                nonFleeSeperation *= 1.0f;
-            }
-
-            Vector3 newVelocity = agent.velocity + nonFleeSeperation + nonFleeCohesion + nonFleeAlignment;
-            newVelocity = newVelocity * maxWalkSpeed;
-            newVelocity = Vector3.ClampMagnitude(newVelocity, (maxWalkSpeed * endurance));
-
-            agent.velocity = (newVelocity);
-        } else {
-            // we haven't seen anything, including fellow prey
-            // sample a random point in a small fixed circle and walk to it
-            state = "relaxed";
-            agent.ResetPath();
-
-            // NOT a redundant line, captures agent velocity when exiting flock behavior or when exiting
-            // repulsion from predators causing our prey to continue to move 
-            agent.velocity = agent.velocity;
-        }
-    }
-
 }
