@@ -48,9 +48,8 @@ public class PreyAgent : MonoBehaviour {
         curSpeed = curMove.magnitude / Time.deltaTime;
         previousPosition = transform.position;
 
-        updatePrey();
-
         if (health > 0 && animator.enabled) {
+			updatePrey();
             if (curSpeed > 0 && curSpeed <= (maxWalkSpeed + 1)) {
                 animator.SetInteger("movement_state", 1);
             } else if (curSpeed > maxWalkSpeed + 1) {
@@ -97,7 +96,7 @@ public class PreyAgent : MonoBehaviour {
     public void bitePrey() {
 		endurance *= enduranceScalar;
 		enduranceScalar = Mathf.Pow (enduranceScalar, 3);
-        health -= (10 * Time.deltaTime);
+        health -= (10);
     }
 
     // Getter function to receive the current agent's velocity in the simulation
@@ -110,7 +109,6 @@ public class PreyAgent : MonoBehaviour {
             exhibitDisabledState();
         } else {
             calculateForces();
-            //calculateCurrentDestination();
             updateEndurance();
         }
     }
@@ -186,7 +184,9 @@ public class PreyAgent : MonoBehaviour {
 
     private void exhibitDisabledState() {
         agent.speed = 0;
+		agent.velocity = Vector3.zero;
         agent.ResetPath();
+		agent.enabled = false;
         transform.Rotate(new Vector3(transform.rotation.x, transform.rotation.y, 90));
         BoxCollider collide = this.GetComponent<BoxCollider>();
         animator.enabled = false;

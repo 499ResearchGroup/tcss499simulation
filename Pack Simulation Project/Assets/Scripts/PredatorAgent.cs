@@ -2,7 +2,7 @@
 using System.Collections;
 
 
-// Script utilized to perform AI behavior on our Prey GameObjects
+// Script utilized for behavior on our Predator GameObjects
 public class PredatorAgent : MonoBehaviour {
 
 
@@ -13,13 +13,13 @@ public class PredatorAgent : MonoBehaviour {
     private float maxRunSpeed;
 
 
-    // the following three fields are used for animation controlling
+    // The following three fields are used for animation controlling.
     // 0 = running, walking
     // 1 = attacking
     private int predatorState;
-    // time in seconds to execute a full attack
+    // Time in seconds to execute a full attack.
     private float attackTime;
-    // a time stamp for when the attack was initiated
+    // A time stamp for when the attack was initiated.
     private float attackTimeStampInitiated;
 
     private Vector3 previousPosition;
@@ -29,7 +29,6 @@ public class PredatorAgent : MonoBehaviour {
 
     private float endurance;
     private float visionRadius;
-    private float focusRadius;
     private float personalSpaceRadius;
     private float killRange;
 
@@ -46,8 +45,7 @@ public class PredatorAgent : MonoBehaviour {
         maxRunSpeed = Config.PREDATOR_RUN_SPEED;
         visionRadius = Config.PREDATOR_VISION_RADIUS;
         personalSpaceRadius = agent.radius * 2;
-        focusRadius = 35;
-        killRange = 10.5f;
+        killRange = 8.5f;
         predatorState = 0;
         attackTime = 0.5f;
         attackTimeStampInitiated = Time.time;
@@ -110,6 +108,7 @@ public class PredatorAgent : MonoBehaviour {
         return agent.velocity;
     }
 
+	// The update predator function which contains all function calls necessary to update the state of the Predator.
     private void updatePredator() {
         //calculateCurrentDestination();
         calculateForces();
@@ -117,7 +116,15 @@ public class PredatorAgent : MonoBehaviour {
         checkAttackStatus();
     }
 
-
+	// Primary method for calculating new velocity for Predators. Utilizes a modified boids model with additional attraction vector
+	// to push Predators dynamically towards the closest Prey.
+	//
+	// Sources used/credit to:
+	// 	Craig Reynolds: http://www.red3d.com/cwr/boids/
+	// 		Utilized Craig Reynolds' article on his development of the Boids model when initially learning about Boids for the first time. 
+	// 	Conrad Parker: http://www.kfish.org/boids/pseudocode.html
+	// 		Utilized Conrad Parker's article on Boids which provides psuedo-code and suggestions for goal setting when learning about Boids for
+    //      the first time. 
     private void calculateForces() {
         // create a detection radius and find all relevant agents within it
         Collider[] hitColliders = Physics.OverlapSphere(this.transform.position, visionRadius);
@@ -144,6 +151,7 @@ public class PredatorAgent : MonoBehaviour {
                 float distToPrey = Vector3.Distance(curObject.transform.position, this.transform.position);
                 if (distToPrey < closestDist) {
                     closestPrey = curObject;
+					closestDist = distToPrey;
                 }
                 attraction += (curObject.transform.position - this.transform.position) / (distToPrey * distToPrey * distToPrey);
             }
@@ -174,12 +182,17 @@ public class PredatorAgent : MonoBehaviour {
         }
     }
 
+	// Helper function to determine whether we're in kill range of a prey. 
+	// Initiates an attack if inside of kill range, attacking the given prey. 
     private void checkIfInKillRange(float closestDist, GameObject prey) {
         if (closestDist <= killRange) {
             initiateAttack(prey);
         }
     }
 
+	// Helper function to initiate an attack. 
+	//
+	// Attacks can happen once every "attackTime" seconds, where "attackTime" is in seconds.
     private void initiateAttack(GameObject closestPrey) {
         PreyAgent getPreyScript = closestPrey.GetComponent<PreyAgent>();
 		//Debug.Log ("we're attempting to attack");
@@ -192,6 +205,8 @@ public class PredatorAgent : MonoBehaviour {
         } 
     }
 
+	// Helper function to determine whether our Predator can attack again. Switches the predatorState to "0" (not-attacking) if 
+	// so. 
     private void checkAttackStatus() {
         // an attack is available, but we aren't attacking, reset our predatorState to 0
         if (Time.time >= (attackTimeStampInitiated + attackTime)) {
@@ -200,6 +215,7 @@ public class PredatorAgent : MonoBehaviour {
         // else we must be attacking, don't interrupt 
     }
 
+	// Updates the endurance on our Predator, then updates the speed with the new endurance value. 
     private void updateEndurance() {
 
         if (curSpeed >= maxWalkSpeed) {
