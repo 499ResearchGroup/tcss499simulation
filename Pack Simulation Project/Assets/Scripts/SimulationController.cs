@@ -1,6 +1,10 @@
 ﻿using UnityEngine;
+using UnityEngine.SceneManagement;
 
 static class Config {
+
+    public const int NUMBER_OF_RUNS = 2;
+
     /* Predator Config values */
     public const float PREDATOR_SPREAD = 45.0f;
     public const float PREDATOR_DISTANCE = -35.0f;
@@ -43,30 +47,44 @@ static class Config {
 
 public class SimulationController : MonoBehaviour {
 
-    //public PredatorAgent[] predators;
-    //public PreyAgent[] prey;
     public GameObject prey;
     public GameObject predator;
 
+    //public PredatorAgent[] predators;
+    //public PreyAgent[] preys;
+    private GameObject[] predators;
+    private GameObject[] preys;
+
+    private int runCount;
+
 	// Use this for initialization
 	void Start () {
+        runCount = 0;
         Time.timeScale = 1.0f;
-        
-        initGroup(prey, Config.PREY_COUNT, 
-                        Config.PREY_SPREAD, 
-                        Config.PREY_DISTANCE, 
-                        Config.GEN_RANDOM_SEED, 
-                        Config.PREY_VARIANT_STARTING_DIRECTION, 
-                        Config.PREY_DIFFERENT_STARTING_DIRECTION,
-                        Config.PREY_STARTING_DIRECTION);
 
-        initGroup(predator, Config.PREDATOR_COUNT, 
-                            Config.PREDATOR_SPREAD, 
-                            Config.PREDATOR_DISTANCE, 
-                            Config.GEN_RANDOM_SEED, 
-                            Config.PREDATOR_VARIANT_STARTING_DIRECTION, 
-                            Config.PREDATOR_DIFFERENT_STARTING_DIRECTION,
-                            Config.PREDATOR_STARTING_DIRECTION);     
+        initEntities();
+    }
+
+
+    private void initEntities()
+    {
+        preys = initGroup(prey,
+                          Config.PREY_COUNT,
+                          Config.PREY_SPREAD,
+                          Config.PREY_DISTANCE,
+                          Config.GEN_RANDOM_SEED,
+                          Config.PREY_VARIANT_STARTING_DIRECTION,
+                          Config.PREY_DIFFERENT_STARTING_DIRECTION,
+                          Config.PREY_STARTING_DIRECTION);
+
+        predators = initGroup(predator,
+                          Config.PREDATOR_COUNT,
+                          Config.PREDATOR_SPREAD,
+                          Config.PREDATOR_DISTANCE,
+                          Config.GEN_RANDOM_SEED,
+                          Config.PREDATOR_VARIANT_STARTING_DIRECTION,
+                          Config.PREDATOR_DIFFERENT_STARTING_DIRECTION,
+                          Config.PREDATOR_STARTING_DIRECTION);
     }
     
     /*
@@ -164,6 +182,65 @@ public class SimulationController : MonoBehaviour {
 
     // Update is called once per frame
     void Update () {
+
+        if (preys != null && predators != null && runCount < Config.NUMBER_OF_RUNS )
+        {
+            bool isOver = true;
+            for (int i = 0; i < predators.Length; i++)
+            {
+                if (predators[i].gameObject.GetComponent<PredatorAgent>().areTargets)
+                {
+                    // A predator can still see a prey, simulation isn't over yet.
+                    isOver = false;
+                    break;
+                }
+            }
+
+            // Only check prey if simulation wasn't determined to be over from predator checks.
+            if (!isOver)
+            {
+                for (int i = 0; i < preys.Length; i++)
+                {
+                    if (preys[i].gameObject.GetComponent<PreyAgent>().health <= 0)
+                    {
+                        // A prey is dead, simulation is over.
+                        isOver = true;
+                        break;
+                    }
+                }
+            }
+
+            if (isOver)
+            {
+                reloadScene();
+            }
+        }
+
 	
 	}
+
+    private void reloadScene()
+    {
+        runCount++;
+        // Transcribe data here.
+
+        if (runCount < Config.NUMBER_OF_RUNS)
+        {
+            //SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+            for (int i = 0; i < predators.Length; i++)
+            {
+                Destroy(predators[i]);
+            }
+            for (int i = 0; i < preys.Length; i++)
+            {
+                Destroy(preys[i]);
+            }
+            initEntities();
+        }
+        else
+        {
+            Time.timeScale = 0.0f;
+        }
+        
+    }
 }

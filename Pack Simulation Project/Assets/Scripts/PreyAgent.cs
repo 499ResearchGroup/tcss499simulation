@@ -19,7 +19,7 @@ public class PreyAgent : MonoBehaviour {
     private bool selected;
 
     private float endurance;
-    private float health;
+    public float health;
     private string state;
     private float visionRadius;
     private float personalSpaceRadius;

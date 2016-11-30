@@ -32,6 +32,10 @@ public class PredatorAgent : MonoBehaviour {
     private float personalSpaceRadius;
     private float killRange;
 
+    /* Indicates that there are any given amount of prey  */
+    /* within sight of this predator.                    */
+    public bool areTargets;
+
     // Use this for initialization
     void Start() {
         agent = GetComponent<NavMeshAgent>();
@@ -49,6 +53,7 @@ public class PredatorAgent : MonoBehaviour {
         predatorState = 0;
         attackTime = 0.5f;
         attackTimeStampInitiated = Time.time;
+        areTargets = true;
     }
 
     // Update is called once per frame
@@ -176,8 +181,10 @@ public class PredatorAgent : MonoBehaviour {
             cohesion *= 0.1f;
             attraction *= 5000;
             checkIfInKillRange(closestDist, closestPrey);
+            areTargets = true;
             agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + attraction, maxRunSpeed * endurance);
         } else {
+            areTargets = false;
             agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation, maxWalkSpeed * endurance);
         }
     }
