@@ -104,8 +104,8 @@ public class CameraController : MonoBehaviour {
     private void checkMouseInput() {
         // If the right mouse button is held down, receive mouse input to rotate the camera
         if (Input.GetMouseButton(1)) {
-            rotationX += Input.GetAxis("Mouse X") * sensX * Time.deltaTime;
-            rotationY += Input.GetAxis("Mouse Y") * sensY * Time.deltaTime;
+            rotationX += (Input.GetAxis("Mouse X") * sensX * Time.deltaTime) / Time.timeScale;
+            rotationY += (Input.GetAxis("Mouse Y") * sensY * Time.deltaTime) / Time.timeScale;
             rotationY = Mathf.Clamp(rotationY, minY, maxY);
             transform.localEulerAngles = new Vector3(-rotationY, rotationX, 0);
         }

@@ -105,7 +105,7 @@ public class PreyAgent : MonoBehaviour {
     }
 
     private void updatePrey() {
-        if (health < 25) {
+        if (health <= 0) {
             exhibitDisabledState();
         } else {
             calculateForces();
