@@ -16,7 +16,7 @@ public class PredatorAgent : MonoBehaviour {
     // The following three fields are used for animation controlling.
     // 0 = running, walking
     // 1 = attacking
-    private int predatorState;
+    private int predatorAnimState;
     // Time in seconds to execute a full attack.
     private float attackTime;
     // A time stamp for when the attack was initiated.
@@ -31,6 +31,7 @@ public class PredatorAgent : MonoBehaviour {
     private float visionRadius;
     private float personalSpaceRadius;
     private float killRange;
+    private string predatorMode;
 
     /* Indicates that there are any given amount of prey  */
     /* within sight of this predator.                    */
@@ -50,10 +51,11 @@ public class PredatorAgent : MonoBehaviour {
         visionRadius = Config.PREDATOR_VISION_RADIUS;
         personalSpaceRadius = agent.radius * 2;
         killRange = 8.5f;
-        predatorState = 0;
+        predatorAnimState = 0;
         attackTime = 0.5f;
         attackTimeStampInitiated = Time.time;
         areTargets = true;
+        predatorMode = "relaxed";
     }
 
     // Update is called once per frame
@@ -65,7 +67,7 @@ public class PredatorAgent : MonoBehaviour {
         // if we're a predator
         updatePredator();
 
-        if (predatorState == 1) {
+        if (predatorAnimState == 1) {
             animate.CrossFade("Allosaurus_Attack01");
         } else {
             if (curSpeed > 0 && curSpeed <= maxWalkSpeed) {
@@ -99,7 +101,7 @@ public class PredatorAgent : MonoBehaviour {
             GUI.Label(new Rect(10, 10, 500, 20), "Agent Name: " + this.transform.name);
             GUI.Label(new Rect(10, 20, 500, 20), "Speed: " + curSpeed);
             GUI.Label(new Rect(10, 30, 500, 20), "Endurance: " + endurance);
-            GUI.Label(new Rect(10, 40, 500, 20), "Current Target: " + curTargetName);
+            GUI.Label(new Rect(10, 40, 500, 20), "Current State: " + predatorMode);
         }
     }
 
@@ -143,6 +145,7 @@ public class PredatorAgent : MonoBehaviour {
         // counter used to track number of prey within radius
         int preyDetected = 0;
         int predatorsDetected = 1;
+        bool shouldStalk = true;
         GameObject closestPrey = null;
         float closestDist = Mathf.Infinity;
 
@@ -152,6 +155,10 @@ public class PredatorAgent : MonoBehaviour {
 
             if (curObject.tag == "PreyAgent") {
                 preyDetected++;
+
+                if (curObject.GetComponent<PreyAgent>().getFleeing()) {
+                    shouldStalk = false; 
+                }
 
                 float distToPrey = Vector3.Distance(curObject.transform.position, this.transform.position);
                 if (distToPrey < closestDist) {
@@ -179,11 +186,18 @@ public class PredatorAgent : MonoBehaviour {
             alignment *= 0.1f;
             seperation *= 2.5f;
             cohesion *= 0.1f;
-            attraction *= 5000;
+            attraction *= 50000;
             checkIfInKillRange(closestDist, closestPrey);
             areTargets = true;
-            agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + attraction, maxRunSpeed * endurance);
+            if (shouldStalk) {
+                predatorMode = "stalking";
+                agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + attraction, maxWalkSpeed * endurance);
+            } else {
+                predatorMode = "chasing";
+                agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + attraction, maxRunSpeed * endurance);
+            }
         } else {
+            predatorMode = "herding with other predators";
             areTargets = false;
             agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation, maxWalkSpeed * endurance);
         }
@@ -206,7 +220,7 @@ public class PredatorAgent : MonoBehaviour {
         // if the current time is greater than (initiated + attackTime), we can attack
         if (Time.time >= (attackTimeStampInitiated + attackTime)) {
 			//Debug.Log ("we're initiating an attack");
-            predatorState = 1;
+            predatorAnimState = 1;
             attackTimeStampInitiated = Time.time;
 			getPreyScript.bitePrey();
         } 
@@ -217,7 +231,7 @@ public class PredatorAgent : MonoBehaviour {
     private void checkAttackStatus() {
         // an attack is available, but we aren't attacking, reset our predatorState to 0
         if (Time.time >= (attackTimeStampInitiated + attackTime)) {
-            predatorState = 0;
+            predatorAnimState = 0;
         }
         // else we must be attacking, don't interrupt 
     }

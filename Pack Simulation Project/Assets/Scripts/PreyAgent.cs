@@ -20,7 +20,8 @@ public class PreyAgent : MonoBehaviour {
 
     private float endurance;
     public float health;
-    private string state;
+    private string preyMode;
+    private bool isFleeing;
     private float visionRadius;
     private float personalSpaceRadius;
 	private float enduranceScalar;
@@ -35,11 +36,12 @@ public class PreyAgent : MonoBehaviour {
         previousPosition = transform.position;
         maxWalkSpeed = Config.PREY_WALK_SPEED;
         //maxRunSpeed = Config.PREY_RUN_SPEED;
-		maxRunSpeed = Random.Range(10.0f, 15.0f);
+		maxRunSpeed = Random.Range(13f, 15.0f);
         visionRadius = Config.PREY_VISION_RADIUS;
 		enduranceScalar = 0.999f;
 		personalSpaceRadius = agent.radius * 2;
-        state = "relaxed";
+        isFleeing = false;
+        preyMode = "relaxed";
 	}
 
     // Update is called once per frame
@@ -78,7 +80,7 @@ public class PreyAgent : MonoBehaviour {
             GUI.Label(new Rect(10, 20, 500, 20), "Speed: " + curSpeed);
             GUI.Label(new Rect(10, 30, 500, 20), "Endurance: " + endurance);
             GUI.Label(new Rect(10, 40, 500, 20), "Health: " + health);
-            GUI.Label(new Rect(10, 50, 500, 20), "State: " + state);
+            GUI.Label(new Rect(10, 50, 500, 20), "State: " + preyMode);
         }
     }
 
@@ -90,6 +92,12 @@ public class PreyAgent : MonoBehaviour {
     // Allows the camera to let the HorseAgent know that it has been deselected
     public void deselect() {
         selected = false;
+    }
+
+    // Allows Predators to determine whether this Prey is fleeing or not. 
+    // Returns the Prey's isFleeing value.
+    public bool getFleeing() {
+        return isFleeing;
     }
 
     // Allows other agents to sap the endurance of the prey, simulating a bite
@@ -128,6 +136,19 @@ public class PreyAgent : MonoBehaviour {
         int preyDetected = 1;
         int predatorsDetected = 0;
 
+        // get prey list and calculate boids to simulate infinite vision radius with other prey
+        GameObject[] preyList = GameObject.Find("SimulationManager").GetComponent<SimulationController>().getPreyList();
+        for (int i = 0; i < preyList.Length; i++) {
+            if (preyList[i].GetComponent<PreyAgent>() != this) {
+                preyDetected++;
+                alignment += preyList[i].GetComponent<PreyAgent>().getVelocity();
+                cohesion += preyList[i].transform.position;
+                if (Vector3.Distance(this.transform.position, preyList[i].transform.position) <= personalSpaceRadius) {
+                    seperation -= (preyList[i].transform.position - this.transform.position);
+                }
+            }
+        }
+
         // loop through all of the things we've collided with
         for (int i = 0; i < hitColliders.Length; i++) {
             GameObject curObject = hitColliders[i].gameObject;
@@ -138,15 +159,6 @@ public class PreyAgent : MonoBehaviour {
                 predatorsDetected++;
 				repulsion += (curObject.transform.position - this.transform.position) / (dist * dist * dist);
             }
-
-            if (curObject.tag == "PreyAgent" && !curObject.Equals(this)) {
-                preyDetected++;
-                alignment += curObject.GetComponent<PreyAgent>().getVelocity();
-                cohesion += curObject.transform.position;
-                if (Vector3.Distance(this.transform.position, curObject.transform.position) <= personalSpaceRadius) {
-                    seperation -= (curObject.transform.position - this.transform.position);
-                }
-            }
         }
 
         cohesion /= preyDetected;
@@ -155,8 +167,12 @@ public class PreyAgent : MonoBehaviour {
         if (predatorsDetected > 0) {
             repulsion /= predatorsDetected;
             repulsion *= -5000;
+            isFleeing = true;
+            preyMode = "fleeing";
             agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + repulsion, maxRunSpeed * endurance);
         } else {
+            isFleeing = false;
+            preyMode = "flocking";
             agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation, maxWalkSpeed * endurance);
         }
     }
