@@ -1,9 +1,14 @@
-﻿using UnityEngine;
+﻿using System;
+using System.IO;
+using System.Text;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 
 static class Config {
 
-    public const int NUMBER_OF_RUNS = 2;
+    public const int NUMBER_OF_RUNS = 5;
+    public const int SIMULATION_SPEED_MULTIPLIER = 100; // 1-100
+    public const string FILE_PATH = "c:\\temp\\MyTest.txt";
 
     /* Predator Config values */
     public const float PREDATOR_SPREAD = 45.0f;
@@ -56,11 +61,13 @@ public class SimulationController : MonoBehaviour {
     private GameObject[] preys;
 
     private int runCount;
+    private int mySuccesses;
+    private int myFailures;
 
 	// Use this for initialization
 	void Start () {
         runCount = 0;
-        Time.timeScale = 1.0f;
+        Time.timeScale = 1.0f * (float) Config.SIMULATION_SPEED_MULTIPLIER;
 
         initEntities();
     }
@@ -121,7 +128,7 @@ public class SimulationController : MonoBehaviour {
         objects = new GameObject[theCount];
 
         if (!isRand) {
-            Random.InitState(Config.SEED);
+            UnityEngine.Random.InitState(Config.SEED);
         }
 
         for (int i = 0; i < theCount; i++) {
@@ -192,7 +199,7 @@ public class SimulationController : MonoBehaviour {
 
         if (preys != null && predators != null && runCount < Config.NUMBER_OF_RUNS )
         {
-            bool isOver = true;
+            bool isOver = false;
             for (int i = 0; i < predators.Length; i++)
             {
                 if (predators[i].gameObject.GetComponent<PredatorAgent>().areTargets)
@@ -212,11 +219,18 @@ public class SimulationController : MonoBehaviour {
                     {
                         // A prey is dead, simulation is over.
                         isOver = true;
+                        mySuccesses++;
                         break;
                     }
                 }
             }
+            else
+            {
+                // Predators failed hunt, can't see anymore prey.
+                myFailures++;
+            }
 
+            // If simulation is over, reload the scene.
             if (isOver)
             {
                 reloadScene();
@@ -231,6 +245,7 @@ public class SimulationController : MonoBehaviour {
         runCount++;
         // Transcribe data here.
 
+        // Only reload the scene if there are still runs to do, otherwise freeze simulation.
         if (runCount < Config.NUMBER_OF_RUNS)
         {
             //SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
@@ -246,8 +261,83 @@ public class SimulationController : MonoBehaviour {
         }
         else
         {
+            // Out of runs, freeze simulation and write report to file.
             Time.timeScale = 0.0f;
+            string dataReport = generateReport(mySuccesses, myFailures);
+            writeToFile(dataReport);
         }
         
+    }
+
+
+    private static string generateReport(int successCount, int failureCount)
+    {
+        StringBuilder report = new StringBuilder();
+
+        report.Append(String.Format("{0,-20}", "Number of Runs"));
+        report.Append(Config.NUMBER_OF_RUNS);
+        report.AppendLine();
+
+        report.Append(String.Format("{0,-20}", "Starting Distance"));
+        float distance = Mathf.Abs(Config.PREDATOR_DISTANCE) + Mathf.Abs(Config.PREY_DISTANCE);
+        report.Append(distance);
+        report.AppendLine();
+        report.AppendLine();
+
+
+
+        report.Append(String.Format("{0,-15}{1,10}{2,10}", "", "Predator", "Prey"));
+        report.AppendLine();
+
+        report.Append(String.Format("{0,15}{1,10}{2,10}", "Count", Config.PREDATOR_COUNT, Config.PREY_COUNT));
+        report.AppendLine();
+
+        report.Append(String.Format("{0,15}{1,10}{2,10}", "Walk Speed", Config.PREDATOR_WALK_SPEED, Config.PREY_WALK_SPEED));
+        report.AppendLine();
+
+        report.Append(String.Format("{0,15}{1,10}{2,10}", "Run Speed", Config.PREDATOR_RUN_SPEED, Config.PREY_RUN_SPEED));
+        report.AppendLine();
+
+
+
+
+
+        /* Success/Failure */
+        report.Append("---------------------------------------");
+
+        report.AppendLine();
+        report.Append(String.Format("{0, -15}", "Success"));
+        report.Append(String.Format("{0, -5}", successCount));
+        float successPercent = successCount / Config.NUMBER_OF_RUNS;
+        report.Append(String.Format("{0,-5:P1}", successPercent));
+        report.AppendLine();
+
+
+
+        report.Append(String.Format("{0, -15}", "Failure"));
+        report.Append(String.Format("{0, -5}", failureCount));
+        float failurePercent = failureCount / Config.NUMBER_OF_RUNS;
+        report.Append(String.Format("{0,-5:P1}", failurePercent));
+        report.AppendLine();
+
+        report.AppendLine();
+        report.Append("*************************************************");
+        report.AppendLine();
+
+        return report.ToString();
+    }
+
+
+
+    private static void writeToFile(string theData)
+    {
+        if (!File.Exists(Config.FILE_PATH))
+        {
+            string createText = "Simulation Data" + Environment.NewLine + Environment.NewLine;
+            File.WriteAllText(Config.FILE_PATH, createText);
+        }
+
+        File.AppendAllText(Config.FILE_PATH, theData + Environment.NewLine);
+
     }
 }
