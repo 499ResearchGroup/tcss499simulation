@@ -34,9 +34,13 @@ public class PreyAgent : MonoBehaviour {
         health = 100;
         animator = GetComponent<Animator>();
         previousPosition = transform.position;
-        maxWalkSpeed = Config.PREY_WALK_SPEED;
-        //maxRunSpeed = Config.PREY_RUN_SPEED;
-		maxRunSpeed = Random.Range(13f, 15.0f);
+        if (Config.PREY_USE_RANDOM_SPEEDS) {
+            maxWalkSpeed = Config.PREY_WALK_SPEED;
+            maxRunSpeed = Random.Range(Config.PREY_MIN_RAND_SPEED, Config.PREY_MAX_RAND_SPEED);
+        } else {
+            maxWalkSpeed = Config.PREY_WALK_SPEED;
+            maxRunSpeed = Config.PREY_RUN_SPEED;
+        }
         visionRadius = Config.PREY_VISION_RADIUS;
 		enduranceScalar = 0.999f;
 		personalSpaceRadius = agent.radius * 2;
@@ -65,7 +69,7 @@ public class PreyAgent : MonoBehaviour {
 
     // Triggers when a mouse click collides with the BoxCollider on the Horse
     void OnMouseDown() {
-        Debug.Log("I clicked on a Prey!");
+        //Debug.Log("I clicked on a Prey!");
         GameObject getCameraObject = GameObject.FindGameObjectWithTag("MainCamera");
         CameraController camera = getCameraObject.GetComponent<CameraController>();
         camera.changeObjectFocus(this.transform);
@@ -112,6 +116,7 @@ public class PreyAgent : MonoBehaviour {
         return agent.velocity;
     }
 
+    // Used to update the Prey per time step. 
     private void updatePrey() {
         if (health <= 0) {
             exhibitDisabledState();
@@ -121,7 +126,15 @@ public class PreyAgent : MonoBehaviour {
         }
     }
 
-    // 
+    // Primary method for calculating new velocity for Prey. Utilizes a modified boids model with additional repulsion vector
+    // to push Prey away from Predators dynamically.
+    //
+    // Sources used/credit to:
+    // 	Craig Reynolds: http://www.red3d.com/cwr/boids/
+    // 		Utilized Craig Reynolds' article on his development of the Boids model when initially learning about Boids for the first time. 
+    // 	Conrad Parker: http://www.kfish.org/boids/pseudocode.html
+    // 		Utilized Conrad Parker's article on Boids which provides psuedo-code and suggestions for goal setting when learning about Boids for
+    //      the first time. 
     private void calculateForces() {
         // create a detection radius and find all relevant agents within it
         Collider[] hitColliders = Physics.OverlapSphere(this.transform.position, visionRadius);
@@ -177,6 +190,7 @@ public class PreyAgent : MonoBehaviour {
         }
     }
 
+    // Updates the endurance for this Prey per time step.
     private void updateEndurance() {
 
         if (curSpeed >= maxWalkSpeed) {
@@ -198,6 +212,7 @@ public class PreyAgent : MonoBehaviour {
         agent.speed = (float) (agent.speed * endurance);
     }
 
+    // When called, exhibits the "disabled" state of a Prey.
     private void exhibitDisabledState() {
         agent.speed = 0;
 		agent.velocity = Vector3.zero;

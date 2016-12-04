@@ -25,7 +25,6 @@ public class PredatorAgent : MonoBehaviour {
     private Vector3 previousPosition;
     private float curSpeed;
     private bool selected;
-    private string curTargetName;
 
     private float endurance;
     private float visionRadius;
@@ -43,19 +42,18 @@ public class PredatorAgent : MonoBehaviour {
         agent.autoBraking = false;
         Transform findChild = this.transform.Find("allosaurus_root");
         animate = findChild.GetComponent<Animation>();
-        curTargetName = "NO TARGET SELECTED";
         previousPosition = transform.position;
         endurance = 1.0f;
         maxWalkSpeed = Config.PREDATOR_WALK_SPEED;
         maxRunSpeed = Config.PREDATOR_RUN_SPEED;
         visionRadius = Config.PREDATOR_VISION_RADIUS;
-        personalSpaceRadius = agent.radius * 2;
+        personalSpaceRadius = agent.radius * 4;
         killRange = 8.5f;
         predatorAnimState = 0;
         attackTime = 0.5f;
         attackTimeStampInitiated = Time.time;
         areTargets = true;
-        predatorMode = "relaxed";
+        predatorMode = "Relaxed";
     }
 
     // Update is called once per frame
@@ -87,7 +85,7 @@ public class PredatorAgent : MonoBehaviour {
 
     // Triggers when a mouse click collides with the BoxCollider on the Horse
     void OnMouseDown() {
-        Debug.Log("I clicked on a Predator!");
+        //Debug.Log("I clicked on a Predator!");
         GameObject getCameraObject = GameObject.FindGameObjectWithTag("MainCamera");
         CameraController camera = getCameraObject.GetComponent<CameraController>();
         camera.changeObjectFocus(this.transform);
@@ -190,14 +188,14 @@ public class PredatorAgent : MonoBehaviour {
             checkIfInKillRange(closestDist, closestPrey);
             areTargets = true;
             if (shouldStalk) {
-                predatorMode = "stalking";
+                predatorMode = "Stalking";
                 agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + attraction, maxWalkSpeed * endurance);
             } else {
-                predatorMode = "chasing";
+                predatorMode = "Chasing";
                 agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + attraction, maxRunSpeed * endurance);
             }
         } else {
-            predatorMode = "herding with other predators";
+            predatorMode = "Herding with other Predators";
             areTargets = false;
             agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation, maxWalkSpeed * endurance);
         }

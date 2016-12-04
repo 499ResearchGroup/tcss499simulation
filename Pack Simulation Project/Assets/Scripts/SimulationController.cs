@@ -12,7 +12,7 @@ static class Config {
 
     /* Predator Config values */
     public const float PREDATOR_SPREAD = 45.0f;
-    public const float PREDATOR_DISTANCE = -55.0f;
+    public const float PREDATOR_DISTANCE = -50.0f;
     public const int PREDATOR_COUNT = 5;
     public const float PREDATOR_WALK_SPEED = 7.5f;
     public const float PREDATOR_RUN_SPEED = 12.5f;
@@ -27,7 +27,10 @@ static class Config {
     public const int PREY_COUNT = 15;
     public const float PREY_WALK_SPEED = 5.0f;
     public const float PREY_RUN_SPEED = 15.0f;
+    public const float PREY_MIN_RAND_SPEED = 12.5f; // minimum run speed possible when using random speed generation
+    public const float PREY_MAX_RAND_SPEED = 15.0f; // maximum run speed possible when using random speed generation
     public const float PREY_VISION_RADIUS = 35.0f;
+    public const bool PREY_USE_RANDOM_SPEEDS = true; // when true, uses random speed generation for each prey
     public const bool PREY_DIFFERENT_STARTING_DIRECTION = true;
     public const int PREY_VARIANT_STARTING_DIRECTION = 12;
     public const int PREY_STARTING_DIRECTION = 0;
@@ -237,8 +240,13 @@ public class SimulationController : MonoBehaviour {
             }
         }
 
-	
-	}
+        // for built versions of the simulation escape will exit the application
+        if (Input.GetKey(KeyCode.Escape)) 
+        {
+            Application.Quit();
+        }
+
+    }
 
     private void reloadScene()
     {
