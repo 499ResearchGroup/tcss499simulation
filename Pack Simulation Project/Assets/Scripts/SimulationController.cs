@@ -6,7 +6,7 @@ using UnityEngine.SceneManagement;
 
 static class Config {
 
-    public const int NUMBER_OF_RUNS = 5;
+    public const int NUMBER_OF_RUNS = 15;
     public const int SIMULATION_SPEED_MULTIPLIER = 100; // 1-100
     public const string FILE_PATH = "c:\\temp\\MyTest.txt";
 
@@ -199,7 +199,7 @@ public class SimulationController : MonoBehaviour {
 
         if (preys != null && predators != null && runCount < Config.NUMBER_OF_RUNS )
         {
-            bool isOver = false;
+            bool isOver = true;
             for (int i = 0; i < predators.Length; i++)
             {
                 if (predators[i].gameObject.GetComponent<PredatorAgent>().areTargets)
