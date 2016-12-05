@@ -7,30 +7,30 @@ using UnityEngine.SceneManagement;
 static class Config {
 
     public const int NUMBER_OF_RUNS = 15;
-    public const int SIMULATION_SPEED_MULTIPLIER = 100; // 1-100
+    public const int SIMULATION_SPEED_MULTIPLIER = 1; // 1-100
     public const string FILE_PATH = "c:\\temp\\MyTest.txt";
 
     /* Predator Config values */
     public const float PREDATOR_SPREAD = 45.0f;
     public const float PREDATOR_DISTANCE = -50.0f;
     public const int PREDATOR_COUNT = 5;
-    public const float PREDATOR_WALK_SPEED = 7.5f;
-    public const float PREDATOR_RUN_SPEED = 12.5f;
-    public const float PREDATOR_VISION_RADIUS = 100.0f;
+    public const float PREDATOR_WALK_SPEED = 2.0f;
+    public const float PREDATOR_RUN_SPEED = 16.0f;
+    public const float PREDATOR_VISION_RADIUS = 150.0f;
     public const bool PREDATOR_DIFFERENT_STARTING_DIRECTION = false;
     public const int PREDATOR_VARIANT_STARTING_DIRECTION = 8;
     public const int PREDATOR_STARTING_DIRECTION = 1;
 
     /* Prey Config values */
-    public const float PREY_SPREAD = 100.0F;
-    public const float PREY_DISTANCE = 50.0f;
+    public const float PREY_SPREAD = 100.0f;
+    public const float PREY_DISTANCE = 75.0f;
     public const int PREY_COUNT = 15;
-    public const float PREY_WALK_SPEED = 5.0f;
-    public const float PREY_RUN_SPEED = 15.0f;
-    public const float PREY_MIN_RAND_SPEED = 12.5f; // minimum run speed possible when using random speed generation
-    public const float PREY_MAX_RAND_SPEED = 15.0f; // maximum run speed possible when using random speed generation
-    public const float PREY_VISION_RADIUS = 35.0f;
-    public const bool PREY_USE_RANDOM_SPEEDS = true; // when true, uses random speed generation for each prey
+    public const float PREY_WALK_SPEED = 1.25f;
+    public const float PREY_RUN_SPEED = 20.0f;
+    public const float PREY_MIN_RAND_SPEED = 15.0f; // minimum run speed possible when using random speed generation
+    public const float PREY_MAX_RAND_SPEED = 20.0f; // maximum run speed possible when using random speed generation
+    public const float PREY_VISION_RADIUS = 75.0f;
+    public const bool PREY_USE_RANDOM_SPEEDS = false; // when true, uses random speed generation for each prey
     public const bool PREY_DIFFERENT_STARTING_DIRECTION = true;
     public const int PREY_VARIANT_STARTING_DIRECTION = 12;
     public const int PREY_STARTING_DIRECTION = 0;
@@ -71,6 +71,7 @@ public class SimulationController : MonoBehaviour {
 	void Start () {
         runCount = 0;
         Time.timeScale = 1.0f * (float) Config.SIMULATION_SPEED_MULTIPLIER;
+        //Time.fixedDeltaTime = 1.0f * (float) Config.SIMULATION_SPEED_MULTIPLIER;
 
         initEntities();
     }
@@ -271,6 +272,7 @@ public class SimulationController : MonoBehaviour {
         {
             // Out of runs, freeze simulation and write report to file.
             Time.timeScale = 0.0f;
+            //Time.fixedDeltaTime = 0.0f;
             string dataReport = generateReport(mySuccesses, myFailures);
             writeToFile(dataReport);
         }

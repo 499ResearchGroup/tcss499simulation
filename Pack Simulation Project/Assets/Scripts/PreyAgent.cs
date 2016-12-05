@@ -182,18 +182,24 @@ public class PreyAgent : MonoBehaviour {
             repulsion *= -5000;
             isFleeing = true;
             preyMode = "fleeing";
-            agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + repulsion, maxRunSpeed * endurance);
+
+            float enduranceFactor = endurance * 1.33f;
+            if (enduranceFactor > 1.0f) {
+                enduranceFactor = 1.0f;
+            }
+
+            agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + repulsion, maxRunSpeed * enduranceFactor);
         } else {
             isFleeing = false;
             preyMode = "flocking";
-            agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation, maxWalkSpeed * endurance);
+            agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation, maxWalkSpeed);
         }
     }
 
     // Updates the endurance for this Prey per time step.
     private void updateEndurance() {
 
-        if (curSpeed >= maxWalkSpeed) {
+        if (curSpeed > maxWalkSpeed) {
             endurance -= 0.01f * Time.deltaTime;
         }
 

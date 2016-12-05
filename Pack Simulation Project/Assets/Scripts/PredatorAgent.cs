@@ -189,15 +189,20 @@ public class PredatorAgent : MonoBehaviour {
             areTargets = true;
             if (shouldStalk) {
                 predatorMode = "Stalking";
-                agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + attraction, maxWalkSpeed * endurance);
+                agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + attraction, maxWalkSpeed);
             } else {
                 predatorMode = "Chasing";
-                agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + attraction, maxRunSpeed * endurance);
+                float enduranceFactor = endurance * 1.33f;
+                if (enduranceFactor > 1.0f) {
+                    enduranceFactor = 1.0f;
+                }
+
+                agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + attraction, maxRunSpeed * enduranceFactor);
             }
         } else {
             predatorMode = "Herding with other Predators";
             areTargets = false;
-            agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation, maxWalkSpeed * endurance);
+            agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation, maxWalkSpeed);
         }
     }
 
@@ -237,8 +242,9 @@ public class PredatorAgent : MonoBehaviour {
 	// Updates the endurance on our Predator, then updates the speed with the new endurance value. 
     private void updateEndurance() {
 
-        if (curSpeed >= maxWalkSpeed) {
+        if (curSpeed > maxWalkSpeed) {
             endurance -= 0.005f * Time.deltaTime;
+            //endurance = endurance * 0.99995f;// * Time.deltaTime;
         }
 
         if (curSpeed <= maxWalkSpeed) {
