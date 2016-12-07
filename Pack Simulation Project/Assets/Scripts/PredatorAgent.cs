@@ -155,7 +155,7 @@ public class PredatorAgent : MonoBehaviour {
                 preyDetected++;
 
                 if (curObject.GetComponent<PreyAgent>().getFleeing()) {
-                    shouldStalk = false; 
+                    shouldStalk = false;
                 }
 
                 float distToPrey = Vector3.Distance(curObject.transform.position, this.transform.position);
@@ -163,6 +163,11 @@ public class PredatorAgent : MonoBehaviour {
                     closestPrey = curObject;
 					closestDist = distToPrey;
                 }
+                /*
+                if (curObject.GetComponent<PreyAgent>().getFleeing() && distToPrey < visionRadius / 2) {
+                    shouldStalk = false;
+                }
+                */
                 attraction += (curObject.transform.position - this.transform.position) / (distToPrey * distToPrey * distToPrey);
             }
 
@@ -243,8 +248,9 @@ public class PredatorAgent : MonoBehaviour {
     private void updateEndurance() {
 
         if (curSpeed > maxWalkSpeed) {
-            endurance -= 0.005f * Time.deltaTime;
-            //endurance = endurance * 0.99995f;// * Time.deltaTime;
+            //endurance -= 0.005f * Time.deltaTime;
+            //endurance -= (1 - (endurance * 0.999995f)) * Time.deltaTime;
+            endurance *= Mathf.Pow(0.987f, Time.deltaTime);
         }
 
         if (curSpeed <= maxWalkSpeed) {

@@ -26,6 +26,8 @@ public class PreyAgent : MonoBehaviour {
     private float personalSpaceRadius;
 	private float enduranceScalar;
 
+    private int postFleeTicks;
+
     // Use this for initialization
     void Start() {
         agent = GetComponent<NavMeshAgent>();
@@ -46,6 +48,7 @@ public class PreyAgent : MonoBehaviour {
 		personalSpaceRadius = agent.radius * 2;
         isFleeing = false;
         preyMode = "relaxed";
+        postFleeTicks = 0;
 	}
 
     // Update is called once per frame
@@ -183,6 +186,8 @@ public class PreyAgent : MonoBehaviour {
             isFleeing = true;
             preyMode = "fleeing";
 
+            postFleeTicks = 0;
+
             float enduranceFactor = endurance * 1.33f;
             if (enduranceFactor > 1.0f) {
                 enduranceFactor = 1.0f;
@@ -190,9 +195,14 @@ public class PreyAgent : MonoBehaviour {
 
             agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + repulsion, maxRunSpeed * enduranceFactor);
         } else {
-            isFleeing = false;
-            preyMode = "flocking";
-            agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation, maxWalkSpeed);
+            if (postFleeTicks * Time.deltaTime < 500) {
+                postFleeTicks++;
+            } else {
+                isFleeing = false;
+                preyMode = "flocking";
+                agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation, maxWalkSpeed);
+            }
+            
         }
     }
 
@@ -200,7 +210,9 @@ public class PreyAgent : MonoBehaviour {
     private void updateEndurance() {
 
         if (curSpeed > maxWalkSpeed) {
-            endurance -= 0.01f * Time.deltaTime;
+            //endurance -= 0.01f * Time.deltaTime;
+            //endurance -= (1 - (endurance * 0.99995f)) * Time.deltaTime;
+            endurance *= Mathf.Pow(0.985f, Time.deltaTime);
         }
 
         if (curSpeed <= maxWalkSpeed) {
