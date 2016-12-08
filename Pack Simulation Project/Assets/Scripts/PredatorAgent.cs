@@ -36,6 +36,7 @@ public class PredatorAgent : MonoBehaviour {
     /* within sight of this predator.                    */
     public bool areTargets;
 
+
     // Use this for initialization
     void Start() {
         agent = GetComponent<NavMeshAgent>();

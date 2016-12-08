@@ -11,14 +11,14 @@ public class PreyAgent : MonoBehaviour {
     private NavMeshAgent agent;
     private Animator animator;
 
-    private float maxWalkSpeed;
-    private float maxRunSpeed;
+    public float maxWalkSpeed;
+    public float maxRunSpeed;
 
     private Vector3 previousPosition;
     private float curSpeed;
     private bool selected;
 
-    private float endurance;
+    public float endurance;
     public float health;
     private string preyMode;
     private bool isFleeing;
@@ -28,27 +28,34 @@ public class PreyAgent : MonoBehaviour {
 
     private int postFleeTicks;
 
-    // Use this for initialization
-    void Start() {
+    public void Initialize()
+    {
         agent = GetComponent<NavMeshAgent>();
         agent.autoBraking = false;
         endurance = 1.0f;
         health = 100;
         animator = GetComponent<Animator>();
         previousPosition = transform.position;
-        if (Config.PREY_USE_RANDOM_SPEEDS) {
+        if (Config.PREY_USE_RANDOM_SPEEDS)
+        {
             maxWalkSpeed = Config.PREY_WALK_SPEED;
             maxRunSpeed = Random.Range(Config.PREY_MIN_RAND_SPEED, Config.PREY_MAX_RAND_SPEED);
-        } else {
+        }
+        else {
             maxWalkSpeed = Config.PREY_WALK_SPEED;
             maxRunSpeed = Config.PREY_RUN_SPEED;
         }
         visionRadius = Config.PREY_VISION_RADIUS;
-		enduranceScalar = 0.999f;
-		personalSpaceRadius = agent.radius * 2;
+        enduranceScalar = 0.999f;
+        personalSpaceRadius = agent.radius * 2;
         isFleeing = false;
         preyMode = "relaxed";
         postFleeTicks = 0;
+    }
+
+    // Use this for initialization
+    void Start() {
+        
 	}
 
     // Update is called once per frame

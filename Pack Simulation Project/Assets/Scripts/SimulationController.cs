@@ -38,8 +38,14 @@ static class Config {
     /* Values for control over weaknesses in the prey group
      * NOT IMPLEMENTED YET
      */
-    public const int NUMBER_OF_VULNERABLE_PREY = 0;
-    public const double WEAKNESS_PERCENT = 0.75;
+    public const int WEAK_ENDURANCE_PREY_COUNT = 5;
+    public const float WEAK_ENDURANCE_PERCENT = 0.75f;
+
+    public const int WEAK_MAXSPEED_PREY_COUNT = 0;
+    public const float WEAK_MAXSPEED_PERCENT = 0.75f;
+
+    public const int WEAK_BOTH_PREY_COUNT = 0;
+    public const float WEAK_BOTH_PERCENT = 0.75f;
 
     /* Controls if the simulation will be initialized
      * with random seed, or a provided seed.
@@ -86,6 +92,8 @@ public class SimulationController : MonoBehaviour {
 
     private void initEntities()
     {
+        /* create prey */
+
         preys = initGroup(prey,
                           Config.PREY_COUNT,
                           Config.PREY_SPREAD,
@@ -95,6 +103,42 @@ public class SimulationController : MonoBehaviour {
                           Config.PREY_DIFFERENT_STARTING_DIRECTION,
                           Config.PREY_STARTING_DIRECTION);
 
+        // Initialize the prey
+        int length = preys.Length;
+        for (int i = 0; i < length; i++)
+        {
+            preys[i].gameObject.GetComponent<PreyAgent>().Initialize();
+        }
+
+        /* Apply weaknesses to individual prey */
+        int count = 0;
+        
+
+        for (int i = 0; i < Config.WEAK_ENDURANCE_PREY_COUNT && count < length; i++)
+        {
+            //Debug.Log("endurance " + preys[count].gameObject.GetComponent<PreyAgent>().endurance);
+            preys[count].gameObject.GetComponent<PreyAgent>().endurance = Config.WEAK_ENDURANCE_PERCENT;
+            //Debug.Log("endurance " + preys[count].gameObject.GetComponent<PreyAgent>().endurance);
+            count++;
+        }
+
+        for (int i = 0; i < Config.WEAK_MAXSPEED_PREY_COUNT && count < length; i++)
+        {
+            preys[count].gameObject.GetComponent<PreyAgent>().maxRunSpeed *= Config.WEAK_MAXSPEED_PERCENT;
+            preys[count].gameObject.GetComponent<PreyAgent>().maxWalkSpeed *= Config.WEAK_MAXSPEED_PERCENT;
+            count++;
+        }
+
+        for (int i = 0; i < Config.WEAK_BOTH_PREY_COUNT && count < length; i++)
+        {
+            preys[count].gameObject.GetComponent<PreyAgent>().endurance *= Config.WEAK_BOTH_PERCENT;
+            preys[count].gameObject.GetComponent<PreyAgent>().maxRunSpeed *= Config.WEAK_BOTH_PERCENT;
+            preys[count].gameObject.GetComponent<PreyAgent>().maxWalkSpeed *= Config.WEAK_BOTH_PERCENT;
+            count++;
+        }
+
+
+        /* initialize predators */
         predators = initGroup(predator,
                           Config.PREDATOR_COUNT,
                           Config.PREDATOR_SPREAD,
