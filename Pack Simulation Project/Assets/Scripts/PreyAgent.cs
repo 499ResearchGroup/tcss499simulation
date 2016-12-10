@@ -158,11 +158,12 @@ public class PreyAgent : MonoBehaviour {
         // counter used to track number of prey within radius
         int preyDetected = 1;
         int predatorsDetected = 0;
+        bool detectedFleeingNeighbors = false;
 
         // get prey list and calculate boids to simulate infinite vision radius with other prey
         GameObject[] preyList = GameObject.Find("SimulationManager").GetComponent<SimulationController>().getPreyList();
         for (int i = 0; i < preyList.Length; i++) {
-            if (preyList[i].GetComponent<PreyAgent>() != this) {
+            if (preyList[i] != this.gameObject) {
                 preyDetected++;
                 alignment += preyList[i].GetComponent<PreyAgent>().getVelocity();
                 cohesion += preyList[i].transform.position;
@@ -176,6 +177,12 @@ public class PreyAgent : MonoBehaviour {
         for (int i = 0; i < hitColliders.Length; i++) {
             GameObject curObject = hitColliders[i].gameObject;
 
+            if (curObject.tag == "PreyAgent") {
+                if (curObject.GetComponent<PreyAgent>().getFleeing()) {
+                    detectedFleeingNeighbors = true;
+                }
+            }
+
             if (curObject.tag == "PredatorAgent") {
                 // do something with vectors
 				float dist = Vector3.Distance(this.transform.position, curObject.transform.position);
@@ -187,6 +194,11 @@ public class PreyAgent : MonoBehaviour {
         cohesion /= preyDetected;
         alignment /= preyDetected;
 
+        float enduranceFactor = endurance * 1.33f;
+        if (enduranceFactor > 1.0f) {
+            enduranceFactor = 1.0f;
+        }
+
         if (predatorsDetected > 0) {
             repulsion /= predatorsDetected;
             repulsion *= -5000;
@@ -194,20 +206,20 @@ public class PreyAgent : MonoBehaviour {
             preyMode = "fleeing";
 
             postFleeTicks = 0;
-
-            float enduranceFactor = endurance * 1.33f;
-            if (enduranceFactor > 1.0f) {
-                enduranceFactor = 1.0f;
-            }
-
             agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + repulsion, maxRunSpeed * enduranceFactor);
         } else {
             if (postFleeTicks * Time.deltaTime < 500) {
                 postFleeTicks++;
             } else {
-                isFleeing = false;
-                preyMode = "flocking";
-                agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation, maxWalkSpeed);
+                if (detectedFleeingNeighbors) {
+                    isFleeing = true;
+                    preyMode = "detected fleeing neighbors";
+                    agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation, maxRunSpeed * enduranceFactor);
+                } else {
+                    isFleeing = false;
+                    preyMode = "flocking";
+                    agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation, maxWalkSpeed);
+                }
             }
             
         }
@@ -234,7 +246,7 @@ public class PreyAgent : MonoBehaviour {
             endurance = 1;
         }
 
-        agent.speed = (float) (agent.speed * endurance);
+        //agent.speed = (float) (agent.speed * endurance);
     }
 
     // When called, exhibits the "disabled" state of a Prey.

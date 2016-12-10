@@ -172,7 +172,7 @@ public class PredatorAgent : MonoBehaviour {
                 attraction += (curObject.transform.position - this.transform.position) / (distToPrey * distToPrey * distToPrey);
             }
 
-            if (curObject.tag == "PredatorAgent" && !curObject.Equals(this)) {
+            if (curObject.tag == "PredatorAgent" && !curObject.Equals(this.gameObject)) {
                 predatorsDetected++;
                 alignment += curObject.GetComponent<PredatorAgent>().getVelocity();
                 cohesion += curObject.transform.position;
@@ -266,6 +266,6 @@ public class PredatorAgent : MonoBehaviour {
             endurance = 1;
         }
 
-        agent.speed = (float)(agent.speed * endurance);
+        //agent.speed = (float)(agent.speed * endurance);
     }
 }
