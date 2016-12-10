@@ -177,7 +177,7 @@ public class PreyAgent : MonoBehaviour {
         for (int i = 0; i < hitColliders.Length; i++) {
             GameObject curObject = hitColliders[i].gameObject;
 
-            if (curObject.tag == "PreyAgent") {
+            if (curObject.tag == "PreyAgent" && curObject != this.gameObject) {
                 if (curObject.GetComponent<PreyAgent>().getFleeing()) {
                     detectedFleeingNeighbors = true;
                 }
