@@ -6,8 +6,8 @@ using UnityEngine.SceneManagement;
 
 static class Config {
 
-    public const int NUMBER_OF_RUNS = 5;
-    public const int SIMULATION_SPEED_MULTIPLIER = 1; // 1-100
+    public const int NUMBER_OF_RUNS = 3;
+    public const int SIMULATION_SPEED_MULTIPLIER = 20; // 1-100
     public const string FILE_PATH = "c:\\temp\\MyTest.txt";
 
     /* Predator Config values */
@@ -47,6 +47,11 @@ static class Config {
     public const int WEAK_BOTH_PREY_COUNT = 0;
     public const float WEAK_BOTH_PERCENT = 0.75f;
 
+    public const int ENDURANCE_INDEX = 0; // Do not change. indices need to be unique and 0-3
+    public const int MAXSPEED_INDEX = 1;  // Do not change.
+    public const int BOTH_INDEX = 2;      // Do not change.
+    public const int HEALTHY_INDEX = 3;   // Do not change.
+
     /* Controls if the simulation will be initialized
      * with random seed, or a provided seed.
      */
@@ -73,9 +78,14 @@ public class SimulationController : MonoBehaviour {
     private int mySuccesses;
     private int myFailures;
 
+    private int[] mySuccessTargetCounts;
+
 	// Use this for initialization
 	void Start () {
         runCount = 0;
+        mySuccesses = 0;
+        myFailures = 0;
+        mySuccessTargetCounts = new int[4] { 0, 0, 0, 0 };
         Time.timeScale = 1.0f * (float) Config.SIMULATION_SPEED_MULTIPLIER;
         //Time.fixedDeltaTime = 1.0f * (float) Config.SIMULATION_SPEED_MULTIPLIER;
 
@@ -119,6 +129,8 @@ public class SimulationController : MonoBehaviour {
             //Debug.Log("endurance " + preys[count].gameObject.GetComponent<PreyAgent>().endurance);
             preys[count].gameObject.GetComponent<PreyAgent>().endurance = Config.WEAK_ENDURANCE_PERCENT;
             //Debug.Log("endurance " + preys[count].gameObject.GetComponent<PreyAgent>().endurance);
+            preys[count].gameObject.GetComponent<PreyAgent>().isWeakened[Config.ENDURANCE_INDEX] = true;
+            preys[count].gameObject.GetComponent<PreyAgent>().isWeakened[Config.HEALTHY_INDEX] = false;
             count++;
         }
 
@@ -126,6 +138,9 @@ public class SimulationController : MonoBehaviour {
         {
             preys[count].gameObject.GetComponent<PreyAgent>().maxRunSpeed *= Config.WEAK_MAXSPEED_PERCENT;
             preys[count].gameObject.GetComponent<PreyAgent>().maxWalkSpeed *= Config.WEAK_MAXSPEED_PERCENT;
+
+            preys[count].gameObject.GetComponent<PreyAgent>().isWeakened[Config.MAXSPEED_INDEX] = true;
+            preys[count].gameObject.GetComponent<PreyAgent>().isWeakened[Config.HEALTHY_INDEX] = false;
             count++;
         }
 
@@ -134,6 +149,9 @@ public class SimulationController : MonoBehaviour {
             preys[count].gameObject.GetComponent<PreyAgent>().endurance *= Config.WEAK_BOTH_PERCENT;
             preys[count].gameObject.GetComponent<PreyAgent>().maxRunSpeed *= Config.WEAK_BOTH_PERCENT;
             preys[count].gameObject.GetComponent<PreyAgent>().maxWalkSpeed *= Config.WEAK_BOTH_PERCENT;
+
+            preys[count].gameObject.GetComponent<PreyAgent>().isWeakened[Config.BOTH_INDEX] = true;
+            preys[count].gameObject.GetComponent<PreyAgent>().isWeakened[Config.HEALTHY_INDEX] = false;
             count++;
         }
 
@@ -266,6 +284,17 @@ public class SimulationController : MonoBehaviour {
                     if (preys[i].gameObject.GetComponent<PreyAgent>().health <= 0)
                     {
                         // A prey is dead, simulation is over.
+
+                        // check what weakened state the prey was in if in any.
+                        int length = preys[i].gameObject.GetComponent<PreyAgent>().isWeakened.Length;
+                        for (int j = 0; j < length; j++) {
+                            if (preys[i].gameObject.GetComponent<PreyAgent>().isWeakened[j])
+                            {
+                                // increment the count of the weakened state the prey was in.
+                                mySuccessTargetCounts[j]++;
+                            }
+                        }
+
                         isOver = true;
                         mySuccesses++;
                         break;
@@ -317,14 +346,20 @@ public class SimulationController : MonoBehaviour {
             // Out of runs, freeze simulation and write report to file.
             Time.timeScale = 0.0f;
             //Time.fixedDeltaTime = 0.0f;
-            string dataReport = generateReport(mySuccesses, myFailures);
+            string dataReport = generateReport(mySuccesses, myFailures, 
+                                               mySuccessTargetCounts[Config.ENDURANCE_INDEX],
+                                               mySuccessTargetCounts[Config.MAXSPEED_INDEX],
+                                               mySuccessTargetCounts[Config.BOTH_INDEX],
+                                               mySuccessTargetCounts[Config.HEALTHY_INDEX]);
             writeToFile(dataReport);
         }
         
     }
 
 
-    private static string generateReport(int successCount, int failureCount)
+    private static string generateReport(int successCount, int failureCount, 
+                                         int enduranceCount, int speedCount,
+                                         int bothCount, int healthyCount)
     {
         StringBuilder report = new StringBuilder();
 
@@ -359,21 +394,53 @@ public class SimulationController : MonoBehaviour {
         /* Success/Failure */
         report.Append("---------------------------------------");
 
+        float tempPercent;
+
         report.AppendLine();
         report.Append(String.Format("{0, -15}", "Success"));
         report.Append(String.Format("{0, -5}", successCount));
-        float successPercent = successCount / Config.NUMBER_OF_RUNS;
-        report.Append(String.Format("{0,-5:P1}", successPercent));
+        tempPercent = successCount / Config.NUMBER_OF_RUNS;
+        report.Append(String.Format("{0,-5:P1}", tempPercent));
+
+
         report.AppendLine();
-
-
-
         report.Append(String.Format("{0, -15}", "Failure"));
         report.Append(String.Format("{0, -5}", failureCount));
-        float failurePercent = failureCount / Config.NUMBER_OF_RUNS;
-        report.Append(String.Format("{0,-5:P1}", failurePercent));
-        report.AppendLine();
+        tempPercent = failureCount / Config.NUMBER_OF_RUNS;
+        report.Append(String.Format("{0,-5:P1}", tempPercent));
 
+        report.AppendLine();
+        report.AppendLine();
+        report.Append("Weakened States of prey caught");
+
+        report.AppendLine();
+        report.Append(String.Format("{0, -15}", "None"));
+        report.Append(String.Format("{0, -5}", healthyCount));
+        tempPercent = healthyCount / successCount;
+        report.Append(String.Format("{0,-5:P1}", tempPercent));
+
+
+        report.AppendLine();
+        report.Append(String.Format("{0, -15}", "Endurance"));
+        report.Append(String.Format("{0, -5}", enduranceCount));
+        tempPercent = enduranceCount / successCount;
+        report.Append(String.Format("{0,-5:P1}", tempPercent));
+
+
+        report.AppendLine();
+        report.Append(String.Format("{0, -15}", "Max Speed"));
+        report.Append(String.Format("{0, -5}", speedCount));
+        tempPercent = speedCount / successCount;
+        report.Append(String.Format("{0,-5:P1}", tempPercent));
+
+
+        report.AppendLine();
+        report.Append(String.Format("{0, -15}", "Both"));
+        report.Append(String.Format("{0, -5}", bothCount));
+        tempPercent = bothCount / successCount;
+        report.Append(String.Format("{0,-5:P1}", tempPercent));
+
+        report.AppendLine();
         report.AppendLine();
         report.Append("*************************************************");
         report.AppendLine();
