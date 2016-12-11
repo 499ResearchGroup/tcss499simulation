@@ -206,7 +206,12 @@ public class PreyAgent : MonoBehaviour {
             preyMode = "fleeing";
 
             postFleeTimeRemaining = Config.PREY_NO_SIGHT_FLEE_DURATION;
-            agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + repulsion, maxRunSpeed * enduranceFactor);
+
+            Vector3 newVelocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + repulsion, maxRunSpeed * enduranceFactor);
+
+            if (!(float.IsNaN(newVelocity.x) || float.IsNaN(newVelocity.y) || float.IsNaN(newVelocity.z))) {
+                agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + repulsion, maxRunSpeed * enduranceFactor);
+            }
         } else {
             if (postFleeTimeRemaining > 0.0f) {
                 // keep our direction but make sure our magnitude is still high 

@@ -7,7 +7,7 @@ using UnityEngine.SceneManagement;
 static class Config {
 
     public const int NUMBER_OF_RUNS = 3;
-    public const int SIMULATION_SPEED_MULTIPLIER = 20; // 1-100
+    public const int SIMULATION_SPEED_MULTIPLIER = 100; // 1-100
     public const string FILE_PATH = "c:\\temp\\MyTest.txt";
 
     /* Predator Config values */
