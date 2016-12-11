@@ -27,6 +27,7 @@ public class PreyAgent : MonoBehaviour {
 	private float enduranceScalar;
 
     private float postFleeTimeRemaining;
+    public bool[] isWeakened;
 
     public void Initialize()
     {
@@ -51,6 +52,7 @@ public class PreyAgent : MonoBehaviour {
         isFleeing = false;
         preyMode = "relaxed";
         postFleeTimeRemaining = 0.0f;
+        isWeakened = new bool[4] { false, false, false, true };
     }
 
     // Use this for initialization
