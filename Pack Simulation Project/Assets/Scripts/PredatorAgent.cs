@@ -203,10 +203,15 @@ public class PredatorAgent : MonoBehaviour {
                     enduranceFactor = 1.0f;
                 }
 
-                Vector3 newVelocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + attraction, maxRunSpeed * enduranceFactor);
+                float runSpeed = maxRunSpeed * enduranceFactor;
+                if (runSpeed < maxWalkSpeed) {
+                    runSpeed = maxWalkSpeed;
+                }
+
+                Vector3 newVelocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + attraction, runSpeed);
 
                 if (!(float.IsNaN(newVelocity.x) || float.IsNaN(newVelocity.y) || float.IsNaN(newVelocity.z))) {
-                    agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + attraction, maxRunSpeed * enduranceFactor);
+                    agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + attraction, runSpeed);
                 }
             }
         } else {

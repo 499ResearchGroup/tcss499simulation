@@ -408,7 +408,7 @@ public class SimulationController : MonoBehaviour {
         /* Success/Failure */
         report.Append("---------------------------------------");
 
-        float tempPercent;
+        float tempPercent = 0.0f;
 
         report.AppendLine();
         report.Append(String.Format("{0, -15}", "Success"));
@@ -427,31 +427,33 @@ public class SimulationController : MonoBehaviour {
         report.AppendLine();
         report.Append("Weakened States of prey caught");
 
+        tempPercent = 0.0f; // reset to 0
+
         report.AppendLine();
         report.Append(String.Format("{0, -15}", "None"));
         report.Append(String.Format("{0, -5}", healthyCount));
-        tempPercent = healthyCount / successCount;
+        if (successCount != 0) tempPercent = healthyCount / successCount;
         report.Append(String.Format("{0,-5:P1}", tempPercent));
 
 
         report.AppendLine();
         report.Append(String.Format("{0, -15}", "Endurance"));
         report.Append(String.Format("{0, -5}", enduranceCount));
-        tempPercent = enduranceCount / successCount;
+        if (successCount != 0) tempPercent = enduranceCount / successCount;
         report.Append(String.Format("{0,-5:P1}", tempPercent));
 
 
         report.AppendLine();
         report.Append(String.Format("{0, -15}", "Max Speed"));
         report.Append(String.Format("{0, -5}", speedCount));
-        tempPercent = speedCount / successCount;
+        if (successCount != 0) tempPercent = speedCount / successCount;
         report.Append(String.Format("{0,-5:P1}", tempPercent));
 
 
         report.AppendLine();
         report.Append(String.Format("{0, -15}", "Both"));
         report.Append(String.Format("{0, -5}", bothCount));
-        tempPercent = bothCount / successCount;
+        if (successCount != 0) tempPercent = bothCount / successCount;
         report.Append(String.Format("{0,-5:P1}", tempPercent));
 
         report.AppendLine();

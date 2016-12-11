@@ -198,6 +198,10 @@ public class PreyAgent : MonoBehaviour {
         if (enduranceFactor > 1.0f) {
             enduranceFactor = 1.0f;
         }
+        float runSpeed = maxRunSpeed * enduranceFactor;
+        if (runSpeed < maxWalkSpeed) {
+            runSpeed = maxWalkSpeed;
+        }
 
         if (predatorsDetected > 0) {
             repulsion /= predatorsDetected;
@@ -207,10 +211,10 @@ public class PreyAgent : MonoBehaviour {
 
             postFleeTimeRemaining = Config.PREY_NO_SIGHT_FLEE_DURATION;
 
-            Vector3 newVelocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + repulsion, maxRunSpeed * enduranceFactor);
+            Vector3 newVelocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + repulsion, runSpeed);
 
             if (!(float.IsNaN(newVelocity.x) || float.IsNaN(newVelocity.y) || float.IsNaN(newVelocity.z))) {
-                agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + repulsion, maxRunSpeed * enduranceFactor);
+                agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + repulsion, runSpeed);
             }
         } else {
             if (postFleeTimeRemaining > 0.0f) {
