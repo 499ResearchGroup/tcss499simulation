@@ -258,9 +258,9 @@ public class PredatorAgent : MonoBehaviour {
             endurance *= Mathf.Pow(0.987f, Time.deltaTime);
         }
 
-        if (curSpeed <= maxWalkSpeed) {
-            endurance += 0.01f * Time.deltaTime;
-        }
+       // if (curSpeed <= maxWalkSpeed) {
+       //     endurance += 0.01f * Time.deltaTime;
+       // }
 
         if (endurance < 0) {
             endurance = 0;
