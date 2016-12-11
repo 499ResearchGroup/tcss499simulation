@@ -93,6 +93,13 @@ public class SimulationController : MonoBehaviour {
         initEntities();
     }
 
+    void OnGUI() {
+        if (runCount >= Config.NUMBER_OF_RUNS) {
+            GUI.color = Color.red;
+            GUI.Label(new Rect(10, 10, 500, 20), "SIMULATION OVER");
+        }
+    }
+
     /**
      * @return Returns the list of prey currently in the simulation.
      */ 
@@ -344,8 +351,14 @@ public class SimulationController : MonoBehaviour {
         }
         else
         {
+            for (int i = 0; i < predators.Length; i++) {
+                Destroy(predators[i]);
+            }
+            for (int i = 0; i < preys.Length; i++) {
+                Destroy(preys[i]);
+            }
             // Out of runs, freeze simulation and write report to file.
-            Time.timeScale = 0.0f;
+            Time.timeScale = 1.0f;
             //Time.fixedDeltaTime = 0.0f;
             string dataReport = generateReport(mySuccesses, myFailures, 
                                                mySuccessTargetCounts[Config.ENDURANCE_INDEX],
