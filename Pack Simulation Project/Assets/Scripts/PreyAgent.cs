@@ -225,6 +225,7 @@ public class PreyAgent : MonoBehaviour {
                 agent.velocity = direction * (maxRunSpeed * enduranceFactor);
 
                 postFleeTimeRemaining -= Time.deltaTime;
+                //Debug.Log("postFleeTimeRemaining" + postFleeTimeRemaining);
             } else {
                 if (detectedFleeingNeighbors) {
                     isFleeing = true;
@@ -244,15 +245,13 @@ public class PreyAgent : MonoBehaviour {
     // Updates the endurance for this Prey per time step.
     private void updateEndurance() {
 
-        if (curSpeed > maxWalkSpeed) {
+        if (curSpeed > maxWalkSpeed + 0.005) {
             //endurance -= 0.01f * Time.deltaTime;
             //endurance -= (1 - (endurance * 0.99995f)) * Time.deltaTime;
-            endurance *= Mathf.Pow(0.985f, Time.deltaTime);
+            endurance *= Mathf.Pow(0.982f, Time.deltaTime);
+        } else {
+            endurance += 0.01f * Time.deltaTime;
         }
-
-        //if (curSpeed <= maxWalkSpeed) {
-        //    endurance += 0.01f * Time.deltaTime;
-        //}
 
         if (endurance < 0) {
             endurance = 0;

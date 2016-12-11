@@ -6,17 +6,17 @@ using UnityEngine.SceneManagement;
 
 static class Config {
 
-    public const int NUMBER_OF_RUNS = 3;
-    public const int SIMULATION_SPEED_MULTIPLIER = 100; // 1-100
+    public const int NUMBER_OF_RUNS = 30;
+    public const int SIMULATION_SPEED_MULTIPLIER = 50; // 1-100
     public const string FILE_PATH = "c:\\temp\\MyTest.txt";
 
     /* Predator Config values */
     public const float PREDATOR_SPREAD = 45.0f;
     public const float PREDATOR_DISTANCE = -75.0f;
-    public const int PREDATOR_COUNT = 1;
+    public const int PREDATOR_COUNT = 4;
     public const float PREDATOR_WALK_SPEED = 2.0f;
     public const float PREDATOR_RUN_SPEED = 16.0f;
-    public const float PREDATOR_VISION_RADIUS = 200.0f;
+    public const float PREDATOR_VISION_RADIUS = 150.0f;
     public const bool PREDATOR_DIFFERENT_STARTING_DIRECTION = false;
     public const int PREDATOR_VARIANT_STARTING_DIRECTION = 8;
     public const int PREDATOR_STARTING_DIRECTION = 1;
@@ -24,7 +24,7 @@ static class Config {
     /* Prey Config values */
     public const float PREY_SPREAD = 10.0f;
     public const float PREY_DISTANCE = 20.0f;
-    public const int PREY_COUNT = 1;
+    public const int PREY_COUNT = 20;
     public const float PREY_WALK_SPEED = 1.25f;
     public const float PREY_RUN_SPEED = 20.0f;
     public const float PREY_MIN_RAND_SPEED = 15.0f; // minimum run speed possible when using random speed generation
@@ -34,19 +34,17 @@ static class Config {
     public const bool PREY_DIFFERENT_STARTING_DIRECTION = true;
     public const int PREY_VARIANT_STARTING_DIRECTION = 12;
     public const int PREY_STARTING_DIRECTION = 0;
-    public const float PREY_NO_SIGHT_FLEE_DURATION = 5.0f; // duration in seconds of how long the prey will flee when losing sight with predators
+    public const float PREY_NO_SIGHT_FLEE_DURATION = 10.0f; // duration in seconds of how long the prey will flee when losing sight with predators
 
-    /* Values for control over weaknesses in the prey group
-     * NOT IMPLEMENTED YET
-     */
-    public const int WEAK_ENDURANCE_PREY_COUNT = 0;
-    public const float WEAK_ENDURANCE_PERCENT = 0.75f;
+    /* Values for control over weaknesses in the prey group */
+    public const int WEAK_ENDURANCE_PREY_COUNT = 1;
+    public const float WEAK_ENDURANCE_PERCENT = 0.90f;
 
-    public const int WEAK_MAXSPEED_PREY_COUNT = 0;
-    public const float WEAK_MAXSPEED_PERCENT = 0.75f;
+    public const int WEAK_MAXSPEED_PREY_COUNT = 1;
+    public const float WEAK_MAXSPEED_PERCENT = 0.90f;
 
     public const int WEAK_BOTH_PREY_COUNT = 0;
-    public const float WEAK_BOTH_PERCENT = 0.75f;
+    public const float WEAK_BOTH_PERCENT = 0.90f;
 
     public const int ENDURANCE_INDEX = 0; // Do not change. indices need to be unique and 0-3
     public const int MAXSPEED_INDEX = 1;  // Do not change.
@@ -385,6 +383,11 @@ public class SimulationController : MonoBehaviour {
         float distance = Mathf.Abs(Config.PREDATOR_DISTANCE) + Mathf.Abs(Config.PREY_DISTANCE);
         report.Append(distance);
         report.AppendLine();
+
+        report.Append("Weakened Prey: Endurance=" + Config.WEAK_ENDURANCE_PREY_COUNT +
+                                        " Speed=" + Config.WEAK_MAXSPEED_PREY_COUNT +
+                                        " Both=" + Config.WEAK_BOTH_PREY_COUNT);
+        report.AppendLine();
         report.AppendLine();
 
 
@@ -413,14 +416,14 @@ public class SimulationController : MonoBehaviour {
         report.AppendLine();
         report.Append(String.Format("{0, -15}", "Success"));
         report.Append(String.Format("{0, -5}", successCount));
-        tempPercent = successCount / Config.NUMBER_OF_RUNS;
+        tempPercent = (float) successCount / Config.NUMBER_OF_RUNS;
         report.Append(String.Format("{0,-5:P1}", tempPercent));
 
 
         report.AppendLine();
         report.Append(String.Format("{0, -15}", "Failure"));
         report.Append(String.Format("{0, -5}", failureCount));
-        tempPercent = failureCount / Config.NUMBER_OF_RUNS;
+        tempPercent = (float) failureCount / Config.NUMBER_OF_RUNS;
         report.Append(String.Format("{0,-5:P1}", tempPercent));
 
         report.AppendLine();
@@ -432,28 +435,28 @@ public class SimulationController : MonoBehaviour {
         report.AppendLine();
         report.Append(String.Format("{0, -15}", "None"));
         report.Append(String.Format("{0, -5}", healthyCount));
-        if (successCount != 0) tempPercent = healthyCount / successCount;
+        if (successCount != 0) tempPercent = (float) healthyCount / successCount;
         report.Append(String.Format("{0,-5:P1}", tempPercent));
 
 
         report.AppendLine();
         report.Append(String.Format("{0, -15}", "Endurance"));
         report.Append(String.Format("{0, -5}", enduranceCount));
-        if (successCount != 0) tempPercent = enduranceCount / successCount;
+        if (successCount != 0) tempPercent = (float) enduranceCount / successCount;
         report.Append(String.Format("{0,-5:P1}", tempPercent));
 
 
         report.AppendLine();
         report.Append(String.Format("{0, -15}", "Max Speed"));
         report.Append(String.Format("{0, -5}", speedCount));
-        if (successCount != 0) tempPercent = speedCount / successCount;
+        if (successCount != 0) tempPercent = (float) speedCount / successCount;
         report.Append(String.Format("{0,-5:P1}", tempPercent));
 
 
         report.AppendLine();
         report.Append(String.Format("{0, -15}", "Both"));
         report.Append(String.Format("{0, -5}", bothCount));
-        if (successCount != 0) tempPercent = bothCount / successCount;
+        if (successCount != 0) tempPercent = (float) bothCount / successCount;
         report.Append(String.Format("{0,-5:P1}", tempPercent));
 
         report.AppendLine();

@@ -193,10 +193,12 @@ public class PredatorAgent : MonoBehaviour {
             attraction *= 50000;
             checkIfInKillRange(closestDist, closestPrey);
             areTargets = true;
+            /*
             if (shouldStalk) {
                 predatorMode = "Stalking";
                 agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + attraction, maxWalkSpeed);
             } else {
+            */
                 predatorMode = "Chasing";
                 float enduranceFactor = endurance * 1.33f;
                 if (enduranceFactor > 1.0f) {
@@ -213,7 +215,7 @@ public class PredatorAgent : MonoBehaviour {
                 if (!(float.IsNaN(newVelocity.x) || float.IsNaN(newVelocity.y) || float.IsNaN(newVelocity.z))) {
                     agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + attraction, runSpeed);
                 }
-            }
+            //}
         } else {
             predatorMode = "Herding with other Predators";
             areTargets = false;
@@ -257,15 +259,13 @@ public class PredatorAgent : MonoBehaviour {
 	// Updates the endurance on our Predator, then updates the speed with the new endurance value. 
     private void updateEndurance() {
 
-        if (curSpeed > maxWalkSpeed) {
+        if (curSpeed > maxWalkSpeed + 0.005f) {
             //endurance -= 0.005f * Time.deltaTime;
             //endurance -= (1 - (endurance * 0.999995f)) * Time.deltaTime;
             endurance *= Mathf.Pow(0.987f, Time.deltaTime);
+        } else {
+            endurance += 0.01f * Time.deltaTime;
         }
-
-       // if (curSpeed <= maxWalkSpeed) {
-       //     endurance += 0.01f * Time.deltaTime;
-       // }
 
         if (endurance < 0) {
             endurance = 0;
