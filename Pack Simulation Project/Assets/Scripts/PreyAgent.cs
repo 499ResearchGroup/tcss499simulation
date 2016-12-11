@@ -26,7 +26,7 @@ public class PreyAgent : MonoBehaviour {
     private float personalSpaceRadius;
 	private float enduranceScalar;
 
-    private int postFleeTicks;
+    private float postFleeTimeRemaining;
 
     public void Initialize()
     {
@@ -50,7 +50,7 @@ public class PreyAgent : MonoBehaviour {
         personalSpaceRadius = agent.radius * 2;
         isFleeing = false;
         preyMode = "relaxed";
-        postFleeTicks = 0;
+        postFleeTimeRemaining = 0.0f;
     }
 
     // Use this for initialization
@@ -176,7 +176,6 @@ public class PreyAgent : MonoBehaviour {
         // loop through all of the things we've collided with
         for (int i = 0; i < hitColliders.Length; i++) {
             GameObject curObject = hitColliders[i].gameObject;
-
             if (curObject.tag == "PreyAgent" && curObject != this.gameObject) {
                 if (curObject.GetComponent<PreyAgent>().getFleeing()) {
                     detectedFleeingNeighbors = true;
@@ -184,7 +183,6 @@ public class PreyAgent : MonoBehaviour {
             }
 
             if (curObject.tag == "PredatorAgent") {
-                // do something with vectors
 				float dist = Vector3.Distance(this.transform.position, curObject.transform.position);
                 predatorsDetected++;
 				repulsion += (curObject.transform.position - this.transform.position) / (dist * dist * dist);
@@ -205,11 +203,17 @@ public class PreyAgent : MonoBehaviour {
             isFleeing = true;
             preyMode = "fleeing";
 
-            postFleeTicks = 0;
+            postFleeTimeRemaining = Config.PREY_NO_SIGHT_FLEE_DURATION;
             agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + repulsion, maxRunSpeed * enduranceFactor);
         } else {
-            if (postFleeTicks * Time.deltaTime < 500) {
-                postFleeTicks++;
+            if (postFleeTimeRemaining > 0.0f) {
+                // keep our direction but make sure our magnitude is still high 
+                Vector3 direction = agent.velocity;
+                direction.Normalize();
+
+                agent.velocity = direction * (maxRunSpeed * enduranceFactor);
+
+                postFleeTimeRemaining -= Time.deltaTime;
             } else {
                 if (detectedFleeingNeighbors) {
                     isFleeing = true;
@@ -223,6 +227,7 @@ public class PreyAgent : MonoBehaviour {
             }
             
         }
+        Debug.DrawRay(this.transform.position, agent.velocity, Color.red, 0, false);
     }
 
     // Updates the endurance for this Prey per time step.

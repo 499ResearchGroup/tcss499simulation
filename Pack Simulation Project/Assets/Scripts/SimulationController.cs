@@ -34,11 +34,12 @@ static class Config {
     public const bool PREY_DIFFERENT_STARTING_DIRECTION = true;
     public const int PREY_VARIANT_STARTING_DIRECTION = 12;
     public const int PREY_STARTING_DIRECTION = 0;
+    public const float PREY_NO_SIGHT_FLEE_DURATION = 5.0f; // duration in seconds of how long the prey will flee when losing sight with predators
 
     /* Values for control over weaknesses in the prey group
      * NOT IMPLEMENTED YET
      */
-    public const int WEAK_ENDURANCE_PREY_COUNT = 5;
+    public const int WEAK_ENDURANCE_PREY_COUNT = 0;
     public const float WEAK_ENDURANCE_PERCENT = 0.75f;
 
     public const int WEAK_MAXSPEED_PREY_COUNT = 0;
