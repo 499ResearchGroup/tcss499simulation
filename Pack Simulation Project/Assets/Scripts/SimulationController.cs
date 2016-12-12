@@ -6,27 +6,27 @@ using UnityEngine.SceneManagement;
 
 static class Config {
 
-    public const int NUMBER_OF_RUNS = 30;
-    public const int SIMULATION_SPEED_MULTIPLIER = 50; // 1-100
+    public const int NUMBER_OF_RUNS = 1000;
+    public const int SIMULATION_SPEED_MULTIPLIER = 75; // 1-100
     public const string FILE_PATH = "c:\\temp\\MyTest.txt";
 
     /* Predator Config values */
-    public const float PREDATOR_SPREAD = 45.0f;
+    public const float PREDATOR_SPREAD = 50.0f;
     public const float PREDATOR_DISTANCE = -75.0f;
-    public const int PREDATOR_COUNT = 4;
-    public const float PREDATOR_WALK_SPEED = 2.0f;
-    public const float PREDATOR_RUN_SPEED = 16.0f;
+    public const int PREDATOR_COUNT = 6;
+    public const float PREDATOR_WALK_SPEED = 2.22f;
+    public const float PREDATOR_RUN_SPEED = 17.78f;
     public const float PREDATOR_VISION_RADIUS = 150.0f;
     public const bool PREDATOR_DIFFERENT_STARTING_DIRECTION = false;
     public const int PREDATOR_VARIANT_STARTING_DIRECTION = 8;
     public const int PREDATOR_STARTING_DIRECTION = 1;
 
     /* Prey Config values */
-    public const float PREY_SPREAD = 10.0f;
-    public const float PREY_DISTANCE = 20.0f;
-    public const int PREY_COUNT = 20;
-    public const float PREY_WALK_SPEED = 1.25f;
-    public const float PREY_RUN_SPEED = 20.0f;
+    public const float PREY_SPREAD = 100.0f;
+    public const float PREY_DISTANCE = 75.0f;
+    public const int PREY_COUNT = 50;
+    public const float PREY_WALK_SPEED = 1.39f;
+    public const float PREY_RUN_SPEED = 22.22f;
     public const float PREY_MIN_RAND_SPEED = 15.0f; // minimum run speed possible when using random speed generation
     public const float PREY_MAX_RAND_SPEED = 20.0f; // maximum run speed possible when using random speed generation
     public const float PREY_VISION_RADIUS = 100.0f;
@@ -37,10 +37,10 @@ static class Config {
     public const float PREY_NO_SIGHT_FLEE_DURATION = 10.0f; // duration in seconds of how long the prey will flee when losing sight with predators
 
     /* Values for control over weaknesses in the prey group */
-    public const int WEAK_ENDURANCE_PREY_COUNT = 1;
+    public const int WEAK_ENDURANCE_PREY_COUNT = 0;
     public const float WEAK_ENDURANCE_PERCENT = 0.90f;
 
-    public const int WEAK_MAXSPEED_PREY_COUNT = 1;
+    public const int WEAK_MAXSPEED_PREY_COUNT = 0;
     public const float WEAK_MAXSPEED_PERCENT = 0.90f;
 
     public const int WEAK_BOTH_PREY_COUNT = 0;
