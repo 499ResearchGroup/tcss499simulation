@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using UnityEngine;
@@ -8,7 +9,7 @@ static class Config {
 
     public const int NUMBER_OF_RUNS = 1000;
     public const int SIMULATION_SPEED_MULTIPLIER = 75; // 1-100
-    public const string FILE_PATH = "c:\\temp\\MyTest.txt";
+    public const string FILE_PATH = "c:\\temp\\MyTest.csv";
 
     /* Predator Config values */
     public const float PREDATOR_SPREAD = 50.0f;
@@ -61,6 +62,7 @@ static class Config {
     /* Constants. Do not change unless there is a good reason. */
     public const float HEIGHT_PLANE = -25.8267f; // The y-axis coordinate
 
+    public const char DELIMITER = ',';
 }
 
 public class SimulationController : MonoBehaviour {
@@ -73,14 +75,19 @@ public class SimulationController : MonoBehaviour {
     private GameObject[] predators;
     private GameObject[] preys;
 
+    private StringBuilder myDataReport;
+
     private int runCount;
     private int mySuccesses;
     private int myFailures;
 
     private int[] mySuccessTargetCounts;
 
+    Stopwatch watch;
+
 	// Use this for initialization
 	void Start () {
+        watch = new Stopwatch();
         runCount = 0;
         mySuccesses = 0;
         myFailures = 0;
@@ -89,6 +96,8 @@ public class SimulationController : MonoBehaviour {
         //Time.fixedDeltaTime = 1.0f * (float) Config.SIMULATION_SPEED_MULTIPLIER;
 
         initEntities();
+        myDataReport = new StringBuilder();
+        myDataReport.Append("Run ID,Success/Failure,Time to completion,Class of prey caught,Endurance of prey caught" + Environment.NewLine);
     }
 
     void OnGUI() {
@@ -171,6 +180,9 @@ public class SimulationController : MonoBehaviour {
                           Config.PREDATOR_VARIANT_STARTING_DIRECTION,
                           Config.PREDATOR_DIFFERENT_STARTING_DIRECTION,
                           Config.PREDATOR_STARTING_DIRECTION);
+
+        // Start timing the simulation
+        watch.Start();
     }
     
     /*
@@ -272,6 +284,10 @@ public class SimulationController : MonoBehaviour {
         if (preys != null && predators != null && runCount < Config.NUMBER_OF_RUNS )
         {
             bool isOver = true;
+            bool wasSuccess = true;
+            PreyAgent caughtPrey = null;
+
+
             for (int i = 0; i < predators.Length; i++)
             {
                 if (predators[i].gameObject.GetComponent<PredatorAgent>().areTargets)
@@ -290,6 +306,7 @@ public class SimulationController : MonoBehaviour {
                     if (preys[i].gameObject.GetComponent<PreyAgent>().health <= 0)
                     {
                         // A prey is dead, simulation is over.
+                        caughtPrey = preys[i].gameObject.GetComponent<PreyAgent>();
 
                         // check what weakened state the prey was in if in any.
                         int length = preys[i].gameObject.GetComponent<PreyAgent>().isWeakened.Length;
@@ -302,6 +319,7 @@ public class SimulationController : MonoBehaviour {
                         }
 
                         isOver = true;
+                        wasSuccess = true;
                         mySuccesses++;
                         break;
                     }
@@ -310,13 +328,14 @@ public class SimulationController : MonoBehaviour {
             else
             {
                 // Predators failed hunt, can't see anymore prey.
+                wasSuccess = false;
                 myFailures++;
             }
 
             // If simulation is over, reload the scene.
             if (isOver)
             {
-                reloadScene();
+                reloadScene(wasSuccess, caughtPrey);
             }
         }
 
@@ -328,10 +347,16 @@ public class SimulationController : MonoBehaviour {
 
     }
 
-    private void reloadScene()
+    private void reloadScene(bool wasSuccess, PreyAgent theCaughtPrey)
     {
+        watch.Stop();
+        double seconds = watch.Elapsed.TotalSeconds;
+        seconds = seconds * Config.SIMULATION_SPEED_MULTIPLIER;
+        seconds = Math.Round(seconds, 1);
+
         runCount++;
         // Transcribe data here.
+        updateReport(wasSuccess, theCaughtPrey, seconds);
 
         // Only reload the scene if there are still runs to do, otherwise freeze simulation.
         if (runCount < Config.NUMBER_OF_RUNS)
@@ -358,14 +383,85 @@ public class SimulationController : MonoBehaviour {
             // Out of runs, freeze simulation and write report to file.
             Time.timeScale = 1.0f;
             //Time.fixedDeltaTime = 0.0f;
+            /*
             string dataReport = generateReport(mySuccesses, myFailures, 
                                                mySuccessTargetCounts[Config.ENDURANCE_INDEX],
                                                mySuccessTargetCounts[Config.MAXSPEED_INDEX],
                                                mySuccessTargetCounts[Config.BOTH_INDEX],
                                                mySuccessTargetCounts[Config.HEALTHY_INDEX]);
-            writeToFile(dataReport);
+            */
+            writeToFile(myDataReport.ToString());
+            
         }
         
+    }
+
+    private void updateReport(bool wasSuccess, PreyAgent theCaughtPrey, double theTime)
+    {
+        // Run ID
+        myDataReport.Append(runCount);
+        myDataReport.Append(Config.DELIMITER);
+
+        // Success / Failure
+        myDataReport.Append(wasSuccess);
+        myDataReport.Append(Config.DELIMITER);
+
+        // Time to Completion
+        myDataReport.Append(theTime);
+        myDataReport.Append(Config.DELIMITER);
+
+        // Class of prey caught
+        if (wasSuccess) {
+            myDataReport.Append(getWeakenedState(theCaughtPrey));
+        } else {
+            myDataReport.Append("");
+        }
+        myDataReport.Append(Config.DELIMITER);
+
+        // Endurance of prey caught
+        if (wasSuccess) {
+            myDataReport.Append(theCaughtPrey.endurance);
+        } else {
+            myDataReport.Append("");
+        }
+        myDataReport.Append(Config.DELIMITER);
+
+        if (runCount < Config.NUMBER_OF_RUNS) myDataReport.Append(Environment.NewLine);
+    }
+
+
+
+    private static string getWeakenedState(PreyAgent thePrey)
+    {
+        string theState = "";
+
+        int length = thePrey.gameObject.GetComponent<PreyAgent>().isWeakened.Length;
+        for (int j = 0; j < length; j++)
+        {
+            if (thePrey.gameObject.GetComponent<PreyAgent>().isWeakened[j])
+            {
+                switch (j)
+                {
+                    case Config.ENDURANCE_INDEX:
+                        theState = "Endurance";
+                        break;
+                    case Config.MAXSPEED_INDEX:
+                        theState = "MaxSpeed";
+                        break;
+                    case Config.BOTH_INDEX:
+                        theState = "Both";
+                        break;
+                    case Config.HEALTHY_INDEX:
+                        theState = "Healthy";
+                        break;
+                    default:
+                        theState = "";
+                        break;
+                }
+            }
+        }
+
+        return theState;
     }
 
 
@@ -473,7 +569,8 @@ public class SimulationController : MonoBehaviour {
     {
         if (!File.Exists(Config.FILE_PATH))
         {
-            string createText = "Simulation Data" + Environment.NewLine + Environment.NewLine;
+            //string createText = "Simulation Data" + Environment.NewLine + Environment.NewLine;
+            string createText = "";
             File.WriteAllText(Config.FILE_PATH, createText);
         }
 
