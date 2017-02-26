@@ -9,7 +9,7 @@ static class Config {
 
     public const int NUMBER_OF_RUNS = 1000;
     public const int SIMULATION_SPEED_MULTIPLIER = 75; // 1-100
-    public const string FILE_PATH = "c:\\temp\\MyTest.csv";
+    public const string FILE_PATH = "c:\\temp\\";
 
     /* Predator Config values */
     public const float PREDATOR_SPREAD = 50.0f;
@@ -38,13 +38,14 @@ static class Config {
     public const float PREY_NO_SIGHT_FLEE_DURATION = 10.0f; // duration in seconds of how long the prey will flee when losing sight with predators
 
     /* Values for control over weaknesses in the prey group */
+    /* Percentage reflects the amount the prey is weakened by */
     public const int WEAK_ENDURANCE_PREY_COUNT = 0;
     public const float WEAK_ENDURANCE_PERCENT = 0.90f;
 
     public const int WEAK_MAXSPEED_PREY_COUNT = 0;
     public const float WEAK_MAXSPEED_PERCENT = 0.90f;
 
-    public const int WEAK_BOTH_PREY_COUNT = 0;
+    public const int WEAK_BOTH_PREY_COUNT = 1;
     public const float WEAK_BOTH_PERCENT = 0.90f;
 
     public const int ENDURANCE_INDEX = 0; // Do not change. indices need to be unique and 0-3
@@ -84,6 +85,7 @@ public class SimulationController : MonoBehaviour {
     private int[] mySuccessTargetCounts;
 
     Stopwatch watch;
+    String myFileName;
 
 	// Use this for initialization
 	void Start () {
@@ -97,7 +99,8 @@ public class SimulationController : MonoBehaviour {
 
         initEntities();
         myDataReport = new StringBuilder();
-        myDataReport.Append("Run ID,Success/Failure,Time to completion,Class of prey caught,Endurance of prey caught" + Environment.NewLine);
+        initReport();
+        initFile();
     }
 
     void OnGUI() {
@@ -182,6 +185,7 @@ public class SimulationController : MonoBehaviour {
                           Config.PREDATOR_STARTING_DIRECTION);
 
         // Start timing the simulation
+        watch.Reset();
         watch.Start();
     }
     
@@ -357,7 +361,10 @@ public class SimulationController : MonoBehaviour {
         runCount++;
         // Transcribe data here.
         updateReport(wasSuccess, theCaughtPrey, seconds);
+        appendToFile(myDataReport.ToString());
+        myDataReport.Length = 0;
 
+        if (runCount % (Config.NUMBER_OF_RUNS / 10) == 0) UnityEngine.Debug.Log("Runs: " + ((double)runCount / Config.NUMBER_OF_RUNS * 100) + "%");
         // Only reload the scene if there are still runs to do, otherwise freeze simulation.
         if (runCount < Config.NUMBER_OF_RUNS)
         {
@@ -390,10 +397,55 @@ public class SimulationController : MonoBehaviour {
                                                mySuccessTargetCounts[Config.BOTH_INDEX],
                                                mySuccessTargetCounts[Config.HEALTHY_INDEX]);
             */
-            writeToFile(myDataReport.ToString());
-            
+                       
         }
         
+    }
+
+
+    private void initReport()
+    {
+        myDataReport.Append("Prey Count,Pred Count,Weak End,Weak Spd,Weak Both,,Pred Spread,Pred Distance,Pred Walk,Pred Run,Pred Vision,Prey Spread,Prey Distance,Prey Walk,Prey Run,Prey Vision,Weak End %,Weak Spd %,Weak Both %" + Environment.NewLine);
+        myDataReport.Append(Config.PREY_COUNT);
+        myDataReport.Append(Config.DELIMITER);
+        myDataReport.Append(Config.PREDATOR_COUNT);
+        myDataReport.Append(Config.DELIMITER);
+        myDataReport.Append(Config.WEAK_ENDURANCE_PREY_COUNT);
+        myDataReport.Append(Config.DELIMITER);
+        myDataReport.Append(Config.WEAK_MAXSPEED_PREY_COUNT);
+        myDataReport.Append(Config.DELIMITER);
+        myDataReport.Append(Config.WEAK_BOTH_PREY_COUNT);
+        myDataReport.Append(Config.DELIMITER);
+        myDataReport.Append("");
+        myDataReport.Append(Config.DELIMITER);
+        myDataReport.Append(Config.PREDATOR_SPREAD);
+        myDataReport.Append(Config.DELIMITER);
+        myDataReport.Append(Config.PREDATOR_DISTANCE);
+        myDataReport.Append(Config.DELIMITER);
+        myDataReport.Append(Config.PREDATOR_WALK_SPEED);
+        myDataReport.Append(Config.DELIMITER);
+        myDataReport.Append(Config.PREDATOR_RUN_SPEED);
+        myDataReport.Append(Config.DELIMITER);
+        myDataReport.Append(Config.PREDATOR_VISION_RADIUS);
+        myDataReport.Append(Config.DELIMITER);
+        myDataReport.Append(Config.PREY_SPREAD);
+        myDataReport.Append(Config.DELIMITER);
+        myDataReport.Append(Config.PREY_DISTANCE);
+        myDataReport.Append(Config.DELIMITER);
+        myDataReport.Append(Config.PREY_WALK_SPEED);
+        myDataReport.Append(Config.DELIMITER);
+        myDataReport.Append(Config.PREY_RUN_SPEED);
+        myDataReport.Append(Config.DELIMITER);
+        myDataReport.Append(Config.PREY_VISION_RADIUS);
+        myDataReport.Append(Config.DELIMITER);
+        myDataReport.Append(Config.WEAK_ENDURANCE_PERCENT);
+        myDataReport.Append(Config.DELIMITER);
+        myDataReport.Append(Config.WEAK_MAXSPEED_PERCENT);
+        myDataReport.Append(Config.DELIMITER);
+        myDataReport.Append(Config.WEAK_BOTH_PERCENT);
+        myDataReport.Append(Environment.NewLine);
+        myDataReport.Append(Environment.NewLine);
+        myDataReport.Append("Run ID,Success/Failure,Time to completion,Class of prey caught,Endurance of prey caught" + Environment.NewLine);
     }
 
     private void updateReport(bool wasSuccess, PreyAgent theCaughtPrey, double theTime)
@@ -420,7 +472,7 @@ public class SimulationController : MonoBehaviour {
 
         // Endurance of prey caught
         if (wasSuccess) {
-            myDataReport.Append(theCaughtPrey.endurance);
+            myDataReport.Append(Math.Round(theCaughtPrey.endurance, 2));
         } else {
             myDataReport.Append("");
         }
@@ -462,6 +514,50 @@ public class SimulationController : MonoBehaviour {
         }
 
         return theState;
+    }
+
+
+    private string generateFileName()
+    {
+        StringBuilder fileName = new StringBuilder();
+
+        fileName.Append(Config.FILE_PATH);
+        /* Dynamic Part of file name */
+        fileName.Append("Prey");
+        fileName.Append(Config.PREY_COUNT);
+        fileName.Append("_Pred");
+        fileName.Append(Config.PREDATOR_COUNT);
+        fileName.Append("_E");
+        fileName.Append(Config.WEAK_ENDURANCE_PREY_COUNT);
+        fileName.Append("_S");
+        fileName.Append(Config.WEAK_MAXSPEED_PREY_COUNT);
+        fileName.Append("_B");
+        fileName.Append(Config.WEAK_BOTH_PREY_COUNT);
+        fileName.Append("_" + getHashID());
+
+        fileName.Append(".csv");
+
+        return fileName.ToString();
+    }
+
+    private int getHashID()
+    {
+        int hashCode = 1;
+        hashCode = 31 * hashCode + (int)Config.PREDATOR_SPREAD;
+        hashCode = 31 * hashCode + (int)Config.PREDATOR_DISTANCE;
+        hashCode = 31 * hashCode + (int)Config.PREDATOR_WALK_SPEED;
+        hashCode = 31 * hashCode + (int)Config.PREDATOR_RUN_SPEED;
+        hashCode = 31 * hashCode + (int)Config.PREDATOR_VISION_RADIUS;
+        hashCode = 31 * hashCode + (int)Config.PREY_SPREAD;
+        hashCode = 31 * hashCode + (int)Config.PREY_DISTANCE;
+        hashCode = 31 * hashCode + (int)Config.PREY_RUN_SPEED;
+        hashCode = 31 * hashCode + (int)Config.PREY_WALK_SPEED;
+        hashCode = 31 * hashCode + (int)Config.PREY_VISION_RADIUS;
+        hashCode = 31 * hashCode + (int)Config.WEAK_ENDURANCE_PERCENT;
+        hashCode = 31 * hashCode + (int)Config.WEAK_MAXSPEED_PERCENT;
+        hashCode = 31 * hashCode + (int)Config.WEAK_BOTH_PERCENT;
+
+        return Math.Abs(hashCode);
     }
 
 
@@ -563,18 +659,33 @@ public class SimulationController : MonoBehaviour {
         return report.ToString();
     }
 
-
-
-    private static void writeToFile(string theData)
+    private void initFile()
     {
-        if (!File.Exists(Config.FILE_PATH))
-        {
-            //string createText = "Simulation Data" + Environment.NewLine + Environment.NewLine;
-            string createText = "";
-            File.WriteAllText(Config.FILE_PATH, createText);
-        }
+        myFileName = generateFileName();
+        //UnityEngine.Debug.Log("File: " + myFileName);
+        File.WriteAllText(myFileName, myDataReport.ToString());
+        //UnityEngine.Debug.Log("Data: " + myDataReport.ToString());
+        myDataReport.Length = 0;
+    }
 
-        File.AppendAllText(Config.FILE_PATH, theData + Environment.NewLine);
+
+
+    private void appendToFile(string theData)
+    {
+        File.AppendAllText(myFileName, theData);
+        
+        /*
+        if (File.Exists(file))
+        {
+            File.Delete(file);
+        }
+        */
+
+        //string createText = "Simulation Data" + Environment.NewLine + Environment.NewLine;
+        //string createText = "";
+        //File.WriteAllText(file, theData);
+
+        //File.AppendAllText(file, theData) + Environment.NewLine);
 
     }
 }
