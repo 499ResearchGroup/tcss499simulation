@@ -39,13 +39,13 @@ static class Config {
 
     /* Values for control over weaknesses in the prey group */
     /* Percentage reflects the amount the prey is weakened by */
-    public const int WEAK_ENDURANCE_PREY_COUNT = 0;
+    public const int WEAK_ENDURANCE_PREY_COUNT = 1;
     public const float WEAK_ENDURANCE_PERCENT = 0.90f;
 
     public const int WEAK_MAXSPEED_PREY_COUNT = 0;
     public const float WEAK_MAXSPEED_PERCENT = 0.90f;
 
-    public const int WEAK_BOTH_PREY_COUNT = 1;
+    public const int WEAK_BOTH_PREY_COUNT = 0;
     public const float WEAK_BOTH_PERCENT = 0.90f;
 
     public const int ENDURANCE_INDEX = 0; // Do not change. indices need to be unique and 0-3
@@ -87,6 +87,8 @@ public class SimulationController : MonoBehaviour {
     Stopwatch watch;
     String myFileName;
 
+    private bool myPreyHitWall;
+
 	// Use this for initialization
 	void Start () {
         watch = new Stopwatch();
@@ -120,6 +122,7 @@ public class SimulationController : MonoBehaviour {
 
     private void initEntities()
     {
+        myPreyHitWall = false;
         /* create prey */
 
         preys = initGroup(prey,
@@ -307,6 +310,11 @@ public class SimulationController : MonoBehaviour {
             {
                 for (int i = 0; i < preys.Length; i++)
                 {
+                    if (!myPreyHitWall && preys[i].gameObject.GetComponent<PreyAgent>().transform.position.z >= 8000-5)
+                    {
+                        myPreyHitWall = true;
+                    }
+
                     if (preys[i].gameObject.GetComponent<PreyAgent>().health <= 0)
                     {
                         // A prey is dead, simulation is over.
@@ -445,7 +453,7 @@ public class SimulationController : MonoBehaviour {
         myDataReport.Append(Config.WEAK_BOTH_PERCENT);
         myDataReport.Append(Environment.NewLine);
         myDataReport.Append(Environment.NewLine);
-        myDataReport.Append("Run ID,Success/Failure,Time to completion,Class of prey caught,Endurance of prey caught" + Environment.NewLine);
+        myDataReport.Append("Run ID,Success/Failure,Time to completion,Class of prey caught,Endurance of prey caught, Prey Hit Wall" + Environment.NewLine);
     }
 
     private void updateReport(bool wasSuccess, PreyAgent theCaughtPrey, double theTime)
@@ -477,6 +485,9 @@ public class SimulationController : MonoBehaviour {
             myDataReport.Append("");
         }
         myDataReport.Append(Config.DELIMITER);
+
+        if (myPreyHitWall)
+            myDataReport.Append(myPreyHitWall);
 
         if (runCount < Config.NUMBER_OF_RUNS) myDataReport.Append(Environment.NewLine);
     }
@@ -529,12 +540,20 @@ public class SimulationController : MonoBehaviour {
         fileName.Append(Config.PREDATOR_COUNT);
         fileName.Append("_E");
         fileName.Append(Config.WEAK_ENDURANCE_PREY_COUNT);
+        if (Config.WEAK_ENDURANCE_PREY_COUNT > 0)
+            fileName.Append("(" + Config.WEAK_ENDURANCE_PERCENT*100 + "%)");
+
         fileName.Append("_S");
         fileName.Append(Config.WEAK_MAXSPEED_PREY_COUNT);
+        if (Config.WEAK_MAXSPEED_PREY_COUNT > 0)
+            fileName.Append("(" + Config.WEAK_MAXSPEED_PERCENT*100 + "%)");
+
         fileName.Append("_B");
         fileName.Append(Config.WEAK_BOTH_PREY_COUNT);
-        fileName.Append("_" + getHashID());
+        if (Config.WEAK_BOTH_PREY_COUNT > 0)
+            fileName.Append("(" + Config.WEAK_BOTH_PERCENT*100 + "%)");
 
+        fileName.Append("_" + getHashID());
         fileName.Append(".csv");
 
         return fileName.ToString();
