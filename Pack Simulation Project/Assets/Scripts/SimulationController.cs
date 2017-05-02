@@ -39,14 +39,14 @@ static class Config {
 
     /* Values for control over weaknesses in the prey group */
     /* Percentage reflects the amount the prey is weakened by */
-    public const int WEAK_ENDURANCE_PREY_COUNT = 1;
-    public const float WEAK_ENDURANCE_PERCENT = 0.90f;
+    public const int WEAK_ENDURANCE_PREY_COUNT = 0;
+    public const float WEAK_ENDURANCE_PERCENT = 0.93f;
 
     public const int WEAK_MAXSPEED_PREY_COUNT = 0;
-    public const float WEAK_MAXSPEED_PERCENT = 0.90f;
+    public const float WEAK_MAXSPEED_PERCENT = 0.99f;
 
-    public const int WEAK_BOTH_PREY_COUNT = 0;
-    public const float WEAK_BOTH_PERCENT = 0.90f;
+    public const int WEAK_BOTH_PREY_COUNT = 1;
+    public const float WEAK_BOTH_PERCENT = 0.95f;
 
     public const int ENDURANCE_INDEX = 0; // Do not change. indices need to be unique and 0-3
     public const int MAXSPEED_INDEX = 1;  // Do not change.
@@ -88,6 +88,7 @@ public class SimulationController : MonoBehaviour {
     String myFileName;
 
     private bool myPreyHitWall;
+    private int myPreyDistanceZ;
 
 	// Use this for initialization
 	void Start () {
@@ -119,10 +120,13 @@ public class SimulationController : MonoBehaviour {
         return preys;
     }
 
-
+    /*
+     * Initializes predator and prey entities.
+     */
     private void initEntities()
     {
         myPreyHitWall = false;
+        myPreyDistanceZ = 0;
         /* create prey */
 
         preys = initGroup(prey,
@@ -141,10 +145,10 @@ public class SimulationController : MonoBehaviour {
             preys[i].gameObject.GetComponent<PreyAgent>().Initialize();
         }
 
+
         /* Apply weaknesses to individual prey */
         int count = 0;
         
-
         for (int i = 0; i < Config.WEAK_ENDURANCE_PREY_COUNT && count < length; i++)
         {
             //Debug.Log("endurance " + preys[count].gameObject.GetComponent<PreyAgent>().endurance);
@@ -248,6 +252,10 @@ public class SimulationController : MonoBehaviour {
      * Helper function for calculating the starting positions.
      * Starting positions are randomized via polar coordinates.
      *
+     * @theSpread    The distance an entity can be from the center.
+     * @theDistance  The distance the center of the spawning circle is from the center of the map.
+     *
+     * @return       The random position within the given parameters.
      */
     private static Vector3 getRandomPosition(float theSpread, float theDistance)
     {
@@ -265,6 +273,11 @@ public class SimulationController : MonoBehaviour {
     /*
      * Helper function for calculating the starting directions.
      * 
+     * @isRandDirection         Indicates if using random directions.
+     * @theDirectionVariance    The range of which an entity's starting direction can differ
+     * @theStartingDirection    if isRandDirection is false, this indicates the starting direction.
+     *
+     * @return                  The direction the entity will be facing.
      */
     private static Quaternion getDirection(bool isRandDirections, int theDirectionVariance, int theStartingDirection)
     {
@@ -310,9 +323,15 @@ public class SimulationController : MonoBehaviour {
             {
                 for (int i = 0; i < preys.Length; i++)
                 {
+                    /*
                     if (!myPreyHitWall && preys[i].gameObject.GetComponent<PreyAgent>().transform.position.z >= 8000-5)
                     {
                         myPreyHitWall = true;
+                    }
+                    */
+                    if (preys[i].gameObject.GetComponent<PreyAgent>().transform.position.z > myPreyDistanceZ)
+                    {
+                        myPreyDistanceZ = (int) preys[i].gameObject.GetComponent<PreyAgent>().transform.position.z;
                     }
 
                     if (preys[i].gameObject.GetComponent<PreyAgent>().health <= 0)
@@ -359,6 +378,13 @@ public class SimulationController : MonoBehaviour {
 
     }
 
+
+    /*
+     * Destroys entities in current run then initializes new entities.
+     *
+     * @wasSuccess      Indicates if the predators were successful.
+     * @theCaughtPrey   The specific prey caught if there was one.
+     */
     private void reloadScene(bool wasSuccess, PreyAgent theCaughtPrey)
     {
         watch.Stop();
@@ -411,6 +437,10 @@ public class SimulationController : MonoBehaviour {
     }
 
 
+    /*
+     * Generates a .CSV file with a header line describing the settings
+     * of the current simulation set of runs.
+     */
     private void initReport()
     {
         myDataReport.Append("Prey Count,Pred Count,Weak End,Weak Spd,Weak Both,,Pred Spread,Pred Distance,Pred Walk,Pred Run,Pred Vision,Prey Spread,Prey Distance,Prey Walk,Prey Run,Prey Vision,Weak End %,Weak Spd %,Weak Both %" + Environment.NewLine);
@@ -453,9 +483,18 @@ public class SimulationController : MonoBehaviour {
         myDataReport.Append(Config.WEAK_BOTH_PERCENT);
         myDataReport.Append(Environment.NewLine);
         myDataReport.Append(Environment.NewLine);
-        myDataReport.Append("Run ID,Success/Failure,Time to completion,Class of prey caught,Endurance of prey caught, Prey Hit Wall" + Environment.NewLine);
+        myDataReport.Append("Run ID,Success/Failure,Time to completion,Class of prey caught,Endurance of prey caught, Prey Z Distance" + Environment.NewLine);
     }
 
+
+    /*
+     * Adds a new row to the .CSV file that contains the data
+     * from the current run.
+     *
+     * @wasSuccess     Indicates if the predators were successful.
+     * @theCaughtPrey  The specific prey entity that was caught if there was one.
+     * @theTime        The amount of time the run lasted for.
+     */
     private void updateReport(bool wasSuccess, PreyAgent theCaughtPrey, double theTime)
     {
         // Run ID
@@ -486,14 +525,23 @@ public class SimulationController : MonoBehaviour {
         }
         myDataReport.Append(Config.DELIMITER);
 
+        /*
         if (myPreyHitWall)
             myDataReport.Append(myPreyHitWall);
+        */
+        myDataReport.Append(myPreyDistanceZ);
 
         if (runCount < Config.NUMBER_OF_RUNS) myDataReport.Append(Environment.NewLine);
     }
 
 
-
+    /*
+     * Retrieves the weakened state of the prey.
+     *
+     * @thePrey    The prey being checked.
+     *
+     * @return     The string name of the prey's state.
+     */
     private static string getWeakenedState(PreyAgent thePrey)
     {
         string theState = "";
@@ -528,6 +576,11 @@ public class SimulationController : MonoBehaviour {
     }
 
 
+    /*
+     * Generates the file name based off of current settings.
+     *
+     * @return    The generated file name.
+     */
     private string generateFileName()
     {
         StringBuilder fileName = new StringBuilder();
@@ -559,27 +612,34 @@ public class SimulationController : MonoBehaviour {
         return fileName.ToString();
     }
 
+
+    /*
+     * Generates a Hash ID based off of current settings.
+     */
     private int getHashID()
     {
-        int hashCode = 1;
-        hashCode = 31 * hashCode + (int)Config.PREDATOR_SPREAD;
-        hashCode = 31 * hashCode + (int)Config.PREDATOR_DISTANCE;
-        hashCode = 31 * hashCode + (int)Config.PREDATOR_WALK_SPEED;
-        hashCode = 31 * hashCode + (int)Config.PREDATOR_RUN_SPEED;
-        hashCode = 31 * hashCode + (int)Config.PREDATOR_VISION_RADIUS;
-        hashCode = 31 * hashCode + (int)Config.PREY_SPREAD;
-        hashCode = 31 * hashCode + (int)Config.PREY_DISTANCE;
-        hashCode = 31 * hashCode + (int)Config.PREY_RUN_SPEED;
-        hashCode = 31 * hashCode + (int)Config.PREY_WALK_SPEED;
-        hashCode = 31 * hashCode + (int)Config.PREY_VISION_RADIUS;
-        hashCode = 31 * hashCode + (int)Config.WEAK_ENDURANCE_PERCENT;
-        hashCode = 31 * hashCode + (int)Config.WEAK_MAXSPEED_PERCENT;
-        hashCode = 31 * hashCode + (int)Config.WEAK_BOTH_PERCENT;
+        int hashCode = 0;
+        hashCode = 31 * hashCode + Config.PREDATOR_SPREAD.GetHashCode();
+        hashCode = 31 * hashCode + Config.PREDATOR_DISTANCE.GetHashCode();
+        hashCode = 31 * hashCode + Config.PREDATOR_WALK_SPEED.GetHashCode();
+        hashCode = 31 * hashCode + Config.PREDATOR_RUN_SPEED.GetHashCode();
+        hashCode = 31 * hashCode + Config.PREDATOR_VISION_RADIUS.GetHashCode();
+        hashCode = 31 * hashCode + Config.PREY_SPREAD.GetHashCode();
+        hashCode = 31 * hashCode + Config.PREY_DISTANCE.GetHashCode();
+        hashCode = 31 * hashCode + Config.PREY_RUN_SPEED.GetHashCode();
+        hashCode = 31 * hashCode + Config.PREY_WALK_SPEED.GetHashCode();
+        hashCode = 31 * hashCode + Config.PREY_VISION_RADIUS.GetHashCode();
+        hashCode = 31 * hashCode + Config.WEAK_ENDURANCE_PERCENT.GetHashCode();
+        hashCode = 31 * hashCode + Config.WEAK_MAXSPEED_PERCENT.GetHashCode();
+        hashCode = 31 * hashCode + Config.WEAK_BOTH_PERCENT.GetHashCode();
 
-        return Math.Abs(hashCode);
+        return hashCode;
     }
 
 
+    /*
+     * Old format for generating the data report. Deprecated.
+     */
     private static string generateReport(int successCount, int failureCount, 
                                          int enduranceCount, int speedCount,
                                          int bothCount, int healthyCount)
@@ -678,6 +738,10 @@ public class SimulationController : MonoBehaviour {
         return report.ToString();
     }
 
+
+    /*
+     * Initializes the file with the given filename.
+     */
     private void initFile()
     {
         myFileName = generateFileName();
@@ -688,7 +752,11 @@ public class SimulationController : MonoBehaviour {
     }
 
 
-
+    /*
+     * Appends a string to the end of the file's data.
+     *
+     * @theData    The data that will be appended to the file.
+     */
     private void appendToFile(string theData)
     {
         File.AppendAllText(myFileName, theData);
