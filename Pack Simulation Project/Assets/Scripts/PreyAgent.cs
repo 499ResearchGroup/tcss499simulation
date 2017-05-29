@@ -211,10 +211,10 @@ public class PreyAgent : MonoBehaviour {
 
             postFleeTimeRemaining = Config.PREY_NO_SIGHT_FLEE_DURATION;
 
-            Vector3 newVelocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + repulsion, runSpeed);
+            Vector3 newVelocity = calculateNewVelocity(alignment, cohesion, seperation, repulsion, runSpeed);
 
             if (!(float.IsNaN(newVelocity.x) || float.IsNaN(newVelocity.y) || float.IsNaN(newVelocity.z))) {
-                agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + repulsion, runSpeed);
+                agent.velocity = newVelocity;
             }
         } else {
             if (postFleeTimeRemaining > 0.0f) {
@@ -230,11 +230,13 @@ public class PreyAgent : MonoBehaviour {
                 if (detectedFleeingNeighbors) {
                     isFleeing = true;
                     preyMode = "detected fleeing neighbors";
-                    agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation, maxRunSpeed * enduranceFactor);
+                    Vector3 newVelocity = calculateNewVelocity(alignment, cohesion, seperation, repulsion, runSpeed);
+                    agent.velocity = newVelocity;
                 } else {
                     isFleeing = false;
                     preyMode = "flocking";
-                    agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation, maxWalkSpeed);
+                    Vector3 newVelocity = calculateNewVelocity(alignment, cohesion, seperation, repulsion, maxWalkSpeed);
+                    agent.velocity = newVelocity;
                 }
             }
             
@@ -274,5 +276,28 @@ public class PreyAgent : MonoBehaviour {
         BoxCollider collide = this.GetComponent<BoxCollider>();
         animator.enabled = false;
         collide.enabled = false;
+    }
+
+    // Calculates a new velocity for the prey and returns. Uses SimulationController flags to determine whether to enable certain flags of 
+    // the model (alignment, cohesion, separation). Clamps the magnitude to the given float input "runSpeed" which is typically the 
+    // maximum desired run speed of the prey in the simulation. 
+    private Vector3 calculateNewVelocity(Vector3 alignment, Vector3 cohesion, Vector3 separation, Vector3 repulsion, float runSpeed) {
+        Vector3 sum = agent.velocity;
+
+        if (Config.PREY_USE_ALIGNMENT) {
+            sum += alignment;
+        }
+
+        if (Config.PREY_USE_COHESION) {
+            sum += cohesion;
+        }
+
+        if (Config.PREY_USE_SEPARATION) {
+            sum += separation;
+        }
+
+        sum += repulsion;
+
+        return Vector3.ClampMagnitude(sum, runSpeed);
     }
 }

@@ -21,6 +21,9 @@ static class Config {
     public const bool PREDATOR_DIFFERENT_STARTING_DIRECTION = false;
     public const int PREDATOR_VARIANT_STARTING_DIRECTION = 8;
     public const int PREDATOR_STARTING_DIRECTION = 1;
+    public const bool PREDATOR_USE_COHESION = true;
+    public const bool PREDATOR_USE_ALIGNMENT = true;
+    public const bool PREDATOR_USE_SEPARATION = true;
 
     /* Prey Config values */
     public const float PREY_SPREAD = 100.0f;
@@ -36,6 +39,9 @@ static class Config {
     public const int PREY_VARIANT_STARTING_DIRECTION = 12;
     public const int PREY_STARTING_DIRECTION = 0;
     public const float PREY_NO_SIGHT_FLEE_DURATION = 10.0f; // duration in seconds of how long the prey will flee when losing sight with predators
+    public const bool PREY_USE_COHESION = true;
+    public const bool PREY_USE_ALIGNMENT = true;
+    public const bool PREY_USE_SEPARATION = true;
 
     /* Values for control over weaknesses in the prey group */
     /* Percentage reflects the amount the prey is weakened by */

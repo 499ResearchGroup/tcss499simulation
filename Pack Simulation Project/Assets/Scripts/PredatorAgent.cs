@@ -199,22 +199,22 @@ public class PredatorAgent : MonoBehaviour {
                 agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + attraction, maxWalkSpeed);
             } else {
             */
-                predatorMode = "Chasing";
-                float enduranceFactor = endurance * 1.33f;
-                if (enduranceFactor > 1.0f) {
-                    enduranceFactor = 1.0f;
-                }
+            predatorMode = "Chasing";
+            float enduranceFactor = endurance * 1.33f;
+            if (enduranceFactor > 1.0f) {
+                enduranceFactor = 1.0f;
+            }
 
-                float runSpeed = maxRunSpeed * enduranceFactor;
-                if (runSpeed < maxWalkSpeed) {
-                    runSpeed = maxWalkSpeed;
-                }
+            float runSpeed = maxRunSpeed * enduranceFactor;
+            if (runSpeed < maxWalkSpeed) {
+                runSpeed = maxWalkSpeed;
+            }
 
-                Vector3 newVelocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + attraction, runSpeed);
+            Vector3 newVelocity = calculateNewVelocity(alignment, cohesion, seperation, attraction, runSpeed);
 
-                if (!(float.IsNaN(newVelocity.x) || float.IsNaN(newVelocity.y) || float.IsNaN(newVelocity.z))) {
-                    agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation + attraction, runSpeed);
-                }
+            if (!(float.IsNaN(newVelocity.x) || float.IsNaN(newVelocity.y) || float.IsNaN(newVelocity.z))) {
+                agent.velocity = Vector3.ClampMagnitude(newVelocity, runSpeed);
+            }
             //}
         } else {
             predatorMode = "Herding with other Predators";
@@ -276,5 +276,29 @@ public class PredatorAgent : MonoBehaviour {
         }
 
         //agent.speed = (float)(agent.speed * endurance);
+    }
+
+
+    // Calculates a new velocity for the predator and returns. Uses SimulationController flags to determine whether to enable certain flags of 
+    // the model (alignment, cohesion, separation). Clamps the magnitude to the given float input "runSpeed" which is typically the 
+    // maximum desired run speed of the predator in the simulation. 
+    private Vector3 calculateNewVelocity(Vector3 alignment, Vector3 cohesion, Vector3 separation, Vector3 attraction, float runSpeed) {
+        Vector3 sum = agent.velocity; 
+
+        if (Config.PREDATOR_USE_ALIGNMENT) {
+            sum += alignment;
+        }
+
+        if (Config.PREDATOR_USE_COHESION) {
+            sum += cohesion;
+        }
+
+        if (Config.PREDATOR_USE_SEPARATION) {
+            sum += separation;
+        }
+
+        sum += attraction;
+
+        return Vector3.ClampMagnitude(sum, runSpeed);
     }
 }
