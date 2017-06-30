@@ -8,13 +8,13 @@ using UnityEngine.SceneManagement;
 static class Config {
 
     public const int NUMBER_OF_RUNS = 1000;
-    public const int SIMULATION_SPEED_MULTIPLIER = 75; // 1-100
+    public const int SIMULATION_SPEED_MULTIPLIER = 1; // 1-100
     public const string FILE_PATH = "c:\\temp\\";
 
     /* Predator Config values */
     public const float PREDATOR_SPREAD = 50.0f;
     public const float PREDATOR_DISTANCE = -75.0f;
-    public const int PREDATOR_COUNT = 6;
+    public const int PREDATOR_COUNT = 5;
     public const float PREDATOR_WALK_SPEED = 2.22f;
     public const float PREDATOR_RUN_SPEED = 17.78f;
     public const float PREDATOR_VISION_RADIUS = 150.0f;
@@ -39,19 +39,26 @@ static class Config {
     public const int PREY_VARIANT_STARTING_DIRECTION = 12;
     public const int PREY_STARTING_DIRECTION = 0;
     public const float PREY_NO_SIGHT_FLEE_DURATION = 10.0f; // duration in seconds of how long the prey will flee when losing sight with predators
-    public const bool PREY_USE_COHESION = true;
-    public const bool PREY_USE_ALIGNMENT = true;
+    public const bool PREY_USE_COHESION = false;
+    public const bool PREY_USE_ALIGNMENT = false;
     public const bool PREY_USE_SEPARATION = true;
 
     /* Values for control over weaknesses in the prey group */
     /* Percentage reflects the amount the prey is weakened by */
+
+    public const bool USE_AUTOMATION = true;
+    public static readonly float[] PERCENT_WEAK_SET = new float[] { 0.95f, 0.90f, 0.85f, 0.80f, 0.75f };
+    public static readonly int[] COUNT_WEAK_SET = new int[] { 1 };
+    public static int START_INDEX = 0;
+    
+
     public const int WEAK_ENDURANCE_PREY_COUNT = 0;
     public const float WEAK_ENDURANCE_PERCENT = 0.93f;
 
     public const int WEAK_MAXSPEED_PREY_COUNT = 0;
     public const float WEAK_MAXSPEED_PERCENT = 0.99f;
 
-    public const int WEAK_BOTH_PREY_COUNT = 1;
+    public const int WEAK_BOTH_PREY_COUNT = 0;
     public const float WEAK_BOTH_PERCENT = 0.95f;
 
     public const int ENDURANCE_INDEX = 0; // Do not change. indices need to be unique and 0-3
@@ -96,14 +103,97 @@ public class SimulationController : MonoBehaviour {
     private bool myPreyHitWall;
     private int myPreyDistanceZ;
 
-	// Use this for initialization
-	void Start () {
+    private int weakSetIndex = -1;
+    private int weakCountIndex = 0;
+    private int weakTypeIndex = 0;
+    private bool lastRun = false;
+    private bool firstRun = true;
+    private int autoRunCount = 0;
+
+    private int endCount = Config.WEAK_ENDURANCE_PREY_COUNT;
+    private float endPerc = Config.WEAK_ENDURANCE_PERCENT;
+    private int speedCount = Config.WEAK_MAXSPEED_PREY_COUNT;
+    private float speedPerc = Config.WEAK_MAXSPEED_PERCENT;
+    private int bothCount = Config.WEAK_BOTH_PREY_COUNT;
+    private float bothPerc = Config.WEAK_BOTH_PERCENT;
+
+    // Use this for initialization
+    void Start () {
+        firstRun = true;
+        if (Config.START_INDEX > 0)
+        {
+            int weakTypeMult = Config.PERCENT_WEAK_SET.Length * Config.COUNT_WEAK_SET.Length;
+            int weakCountMult = Config.PERCENT_WEAK_SET.Length;
+
+            weakTypeIndex = (Config.START_INDEX - 1) / weakTypeMult;
+            weakCountIndex = ((Config.START_INDEX - 1) - (weakTypeIndex * weakTypeMult)) / weakCountMult;
+            weakSetIndex = ((Config.START_INDEX - 1) - (weakTypeIndex * weakTypeMult) - (weakCountIndex * weakCountMult));
+
+            autoRunCount = Config.START_INDEX;
+
+            UnityEngine.Debug.Log("weakTypeIndex: " + weakTypeIndex + "   weakCountIndex: " + weakCountIndex + "   weakSetIndex: " + weakSetIndex);
+
+            firstRun = false;
+        }
+        initRun();
+        
+    }
+
+    private void runAutomation()
+    {
+        if (Config.USE_AUTOMATION)
+        {
+            lastRun = false;
+            autoRunCount++;
+            UnityEngine.Debug.Log("Finished Run: " + autoRunCount + "/" + (Config.PERCENT_WEAK_SET.Length * Config.COUNT_WEAK_SET.Length * 3 + 1));
+            weakSetIndex++;
+            if (weakSetIndex >= Config.PERCENT_WEAK_SET.Length)
+            {
+                weakSetIndex = 0;
+                weakCountIndex++;
+                if (weakCountIndex >= Config.COUNT_WEAK_SET.Length || Config.COUNT_WEAK_SET[weakCountIndex] >= Config.PREY_COUNT)
+                {
+                    weakCountIndex = 0;
+                    weakTypeIndex++;
+                    if (weakTypeIndex >= 3)
+                    {
+                        return;    // done running.
+                    }
+                }
+            }
+            initRun();
+
+
+            /*
+            for (int k = 0; k < 3; k++) // For each weakness category.
+            {
+                weakTypeIndex = k;
+                for (int i = 0; i < Config.COUNT_WEAK_SET.Length; i++) // for each # of weakened.
+                {
+                    weakCountIndex = i;
+                    for (int j = 0; j < Config.PERCENT_WEAK_SET.Length; j++) // the percent/severity of the weakness.
+                    {
+                        weakSetIndex = j;
+                        //if (k == 3 && i == Config.WEAK_COUNT_SET.Length && j == Config.PERCENT_WEAK_SET.Length) lastRun = true;
+                        initRun();
+                        autoRunCount++;
+                        UnityEngine.Debug.Log("Finished Run: " + autoRunCount + "/" + (Config.PERCENT_WEAK_SET.Length * Config.WEAK_COUNT_SET.Length * 3));
+                    }
+                }
+            }
+            */
+        }
+    }
+
+
+    private void initRun()
+    {
         watch = new Stopwatch();
         runCount = 0;
         mySuccesses = 0;
         myFailures = 0;
         mySuccessTargetCounts = new int[4] { 0, 0, 0, 0 };
-        Time.timeScale = 1.0f * (float) Config.SIMULATION_SPEED_MULTIPLIER;
+        Time.timeScale = 1.0f * (float)Config.SIMULATION_SPEED_MULTIPLIER;
         //Time.fixedDeltaTime = 1.0f * (float) Config.SIMULATION_SPEED_MULTIPLIER;
 
         initEntities();
@@ -150,36 +240,83 @@ public class SimulationController : MonoBehaviour {
         {
             preys[i].gameObject.GetComponent<PreyAgent>().Initialize();
         }
-
-
+        
         /* Apply weaknesses to individual prey */
         int count = 0;
         
-        for (int i = 0; i < Config.WEAK_ENDURANCE_PREY_COUNT && count < length; i++)
+
+        if (Config.USE_AUTOMATION)
+        {
+            if (firstRun)
+            {
+                endCount = 0;
+                speedCount = 0;
+                bothCount = 0;
+            }
+            else
+            {
+                switch (weakTypeIndex)
+                {
+                    case 0:
+                        endCount = Config.COUNT_WEAK_SET[weakCountIndex];
+                        endPerc = Config.PERCENT_WEAK_SET[weakSetIndex];
+                        speedCount = 0;
+                        bothCount = 0;
+                        break;
+                    case 1:
+                        endCount = 0;
+                        speedCount = Config.COUNT_WEAK_SET[weakCountIndex];
+                        speedPerc = Config.PERCENT_WEAK_SET[weakSetIndex];
+                        bothCount = 0;
+                        break;
+                    case 2:
+                        endCount = 0;
+                        speedCount = 0;
+                        bothCount = Config.COUNT_WEAK_SET[weakCountIndex];
+                        bothPerc = Config.PERCENT_WEAK_SET[weakSetIndex];
+                        break;
+                    default:
+                        UnityEngine.Debug.Log("Something went wrong with weakTypeIndex: " + weakTypeIndex);
+                        break;
+                }
+            }
+        }
+        else
+        {
+            endCount = Config.WEAK_ENDURANCE_PREY_COUNT;
+            endPerc = Config.WEAK_ENDURANCE_PERCENT;
+            speedCount = Config.WEAK_MAXSPEED_PREY_COUNT;
+            speedPerc = Config.WEAK_MAXSPEED_PERCENT;
+            bothCount = Config.WEAK_BOTH_PREY_COUNT;
+            bothPerc = Config.WEAK_BOTH_PERCENT;
+        }
+
+
+        for (int i = 0; i < endCount && count < length; i++)
         {
             //Debug.Log("endurance " + preys[count].gameObject.GetComponent<PreyAgent>().endurance);
-            preys[count].gameObject.GetComponent<PreyAgent>().endurance = Config.WEAK_ENDURANCE_PERCENT;
+            preys[count].gameObject.GetComponent<PreyAgent>().endurance = endPerc;
             //Debug.Log("endurance " + preys[count].gameObject.GetComponent<PreyAgent>().endurance);
             preys[count].gameObject.GetComponent<PreyAgent>().isWeakened[Config.ENDURANCE_INDEX] = true;
             preys[count].gameObject.GetComponent<PreyAgent>().isWeakened[Config.HEALTHY_INDEX] = false;
             count++;
         }
 
-        for (int i = 0; i < Config.WEAK_MAXSPEED_PREY_COUNT && count < length; i++)
+        for (int i = 0; i < speedCount && count < length; i++)
         {
-            preys[count].gameObject.GetComponent<PreyAgent>().maxRunSpeed *= Config.WEAK_MAXSPEED_PERCENT;
-            preys[count].gameObject.GetComponent<PreyAgent>().maxWalkSpeed *= Config.WEAK_MAXSPEED_PERCENT;
+            preys[count].gameObject.GetComponent<PreyAgent>().maxRunSpeed *= speedPerc;
+            preys[count].gameObject.GetComponent<PreyAgent>().maxWalkSpeed *= speedPerc;
 
             preys[count].gameObject.GetComponent<PreyAgent>().isWeakened[Config.MAXSPEED_INDEX] = true;
             preys[count].gameObject.GetComponent<PreyAgent>().isWeakened[Config.HEALTHY_INDEX] = false;
             count++;
         }
 
-        for (int i = 0; i < Config.WEAK_BOTH_PREY_COUNT && count < length; i++)
+        for (int i = 0; i < bothCount && count < length; i++)
         {
-            preys[count].gameObject.GetComponent<PreyAgent>().endurance *= Config.WEAK_BOTH_PERCENT;
-            preys[count].gameObject.GetComponent<PreyAgent>().maxRunSpeed *= Config.WEAK_BOTH_PERCENT;
-            preys[count].gameObject.GetComponent<PreyAgent>().maxWalkSpeed *= Config.WEAK_BOTH_PERCENT;
+            preys[count].gameObject.GetComponent<PreyAgent>().endurance *= bothPerc;
+            preys[count].gameObject.GetComponent<PreyAgent>().maxRunSpeed *= bothPerc;
+            preys[count].gameObject.GetComponent<PreyAgent>().maxWalkSpeed *= bothPerc;
 
             preys[count].gameObject.GetComponent<PreyAgent>().isWeakened[Config.BOTH_INDEX] = true;
             preys[count].gameObject.GetComponent<PreyAgent>().isWeakened[Config.HEALTHY_INDEX] = false;
@@ -404,7 +541,13 @@ public class SimulationController : MonoBehaviour {
         appendToFile(myDataReport.ToString());
         myDataReport.Length = 0;
 
-        if (runCount % (Config.NUMBER_OF_RUNS / 10) == 0) UnityEngine.Debug.Log("Runs: " + ((double)runCount / Config.NUMBER_OF_RUNS * 100) + "%");
+        if (!Config.USE_AUTOMATION)
+        {
+            if (runCount % (Config.NUMBER_OF_RUNS / 10) == 0)
+                UnityEngine.Debug.Log("Runs: " + ((double)runCount / Config.NUMBER_OF_RUNS * 100) + "%");
+        }
+            
+        
         // Only reload the scene if there are still runs to do, otherwise freeze simulation.
         if (runCount < Config.NUMBER_OF_RUNS)
         {
@@ -437,6 +580,8 @@ public class SimulationController : MonoBehaviour {
                                                mySuccessTargetCounts[Config.BOTH_INDEX],
                                                mySuccessTargetCounts[Config.HEALTHY_INDEX]);
             */
+            firstRun = false;
+            runAutomation();
                        
         }
         
@@ -454,11 +599,11 @@ public class SimulationController : MonoBehaviour {
         myDataReport.Append(Config.DELIMITER);
         myDataReport.Append(Config.PREDATOR_COUNT);
         myDataReport.Append(Config.DELIMITER);
-        myDataReport.Append(Config.WEAK_ENDURANCE_PREY_COUNT);
+        myDataReport.Append(endCount);
         myDataReport.Append(Config.DELIMITER);
-        myDataReport.Append(Config.WEAK_MAXSPEED_PREY_COUNT);
+        myDataReport.Append(speedCount);
         myDataReport.Append(Config.DELIMITER);
-        myDataReport.Append(Config.WEAK_BOTH_PREY_COUNT);
+        myDataReport.Append(bothCount);
         myDataReport.Append(Config.DELIMITER);
         myDataReport.Append("");
         myDataReport.Append(Config.DELIMITER);
@@ -482,11 +627,11 @@ public class SimulationController : MonoBehaviour {
         myDataReport.Append(Config.DELIMITER);
         myDataReport.Append(Config.PREY_VISION_RADIUS);
         myDataReport.Append(Config.DELIMITER);
-        myDataReport.Append(Config.WEAK_ENDURANCE_PERCENT);
+        myDataReport.Append(endPerc);
         myDataReport.Append(Config.DELIMITER);
-        myDataReport.Append(Config.WEAK_MAXSPEED_PERCENT);
+        myDataReport.Append(speedPerc);
         myDataReport.Append(Config.DELIMITER);
-        myDataReport.Append(Config.WEAK_BOTH_PERCENT);
+        myDataReport.Append(bothPerc);
         myDataReport.Append(Environment.NewLine);
         myDataReport.Append(Environment.NewLine);
         myDataReport.Append("Run ID,Success/Failure,Time to completion,Class of prey caught,Endurance of prey caught, Prey Z Distance" + Environment.NewLine);
@@ -598,19 +743,19 @@ public class SimulationController : MonoBehaviour {
         fileName.Append("_Pred");
         fileName.Append(Config.PREDATOR_COUNT);
         fileName.Append("_E");
-        fileName.Append(Config.WEAK_ENDURANCE_PREY_COUNT);
-        if (Config.WEAK_ENDURANCE_PREY_COUNT > 0)
-            fileName.Append("(" + Config.WEAK_ENDURANCE_PERCENT*100 + "%)");
+        fileName.Append(endCount);
+        if (endCount > 0)
+            fileName.Append("(" + endPerc*100 + "%)");
 
         fileName.Append("_S");
-        fileName.Append(Config.WEAK_MAXSPEED_PREY_COUNT);
-        if (Config.WEAK_MAXSPEED_PREY_COUNT > 0)
-            fileName.Append("(" + Config.WEAK_MAXSPEED_PERCENT*100 + "%)");
+        fileName.Append(speedCount);
+        if (speedCount > 0)
+            fileName.Append("(" + speedPerc*100 + "%)");
 
         fileName.Append("_B");
-        fileName.Append(Config.WEAK_BOTH_PREY_COUNT);
-        if (Config.WEAK_BOTH_PREY_COUNT > 0)
-            fileName.Append("(" + Config.WEAK_BOTH_PERCENT*100 + "%)");
+        fileName.Append(bothCount);
+        if (bothCount > 0)
+            fileName.Append("(" + bothPerc*100 + "%)");
 
         fileName.Append("_" + getHashID());
         fileName.Append(".csv");
@@ -635,9 +780,9 @@ public class SimulationController : MonoBehaviour {
         hashCode = 31 * hashCode + Config.PREY_RUN_SPEED.GetHashCode();
         hashCode = 31 * hashCode + Config.PREY_WALK_SPEED.GetHashCode();
         hashCode = 31 * hashCode + Config.PREY_VISION_RADIUS.GetHashCode();
-        hashCode = 31 * hashCode + Config.WEAK_ENDURANCE_PERCENT.GetHashCode();
-        hashCode = 31 * hashCode + Config.WEAK_MAXSPEED_PERCENT.GetHashCode();
-        hashCode = 31 * hashCode + Config.WEAK_BOTH_PERCENT.GetHashCode();
+        hashCode = 31 * hashCode + endPerc.GetHashCode();
+        hashCode = 31 * hashCode + speedPerc.GetHashCode();
+        hashCode = 31 * hashCode + bothPerc.GetHashCode();
 
         return hashCode;
     }
@@ -754,7 +899,8 @@ public class SimulationController : MonoBehaviour {
         //UnityEngine.Debug.Log("File: " + myFileName);
         File.WriteAllText(myFileName, myDataReport.ToString());
         //UnityEngine.Debug.Log("Data: " + myDataReport.ToString());
-        myDataReport.Length = 0;
+        myDataReport.Length = 0; UnityEngine.Debug.Log("Starting: " + myFileName);
+
     }
 
 
