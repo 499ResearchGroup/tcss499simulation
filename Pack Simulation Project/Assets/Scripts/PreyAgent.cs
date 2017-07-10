@@ -7,12 +7,11 @@ using System.Collections;
 // Script utilized to perform AI behavior on our Prey GameObjects
 public class PreyAgent : MonoBehaviour {
 
-
-    private NavMeshAgent agent;
     private Animator animator;
 
     public float maxWalkSpeed;
     public float maxRunSpeed;
+    public Vector3 velocity;
 
     private Vector3 previousPosition;
     private float curSpeed;
@@ -31,8 +30,7 @@ public class PreyAgent : MonoBehaviour {
 
     public void Initialize()
     {
-        agent = GetComponent<NavMeshAgent>();
-        agent.autoBraking = false;
+        velocity = new Vector3(0, 0, 0);
         endurance = 1.0f;
         health = 100;
         animator = GetComponent<Animator>();
@@ -48,17 +46,12 @@ public class PreyAgent : MonoBehaviour {
         }
         visionRadius = Config.PREY_VISION_RADIUS;
         enduranceScalar = 0.999f;
-        personalSpaceRadius = agent.radius * 2;
+        personalSpaceRadius = 6 * 2;
         isFleeing = false;
         preyMode = "relaxed";
         postFleeTimeRemaining = 0.0f;
         isWeakened = new bool[4] { false, false, false, true };
     }
-
-    // Use this for initialization
-    void Start() {
-        
-	}
 
     // Update is called once per frame
     void Update() {
@@ -67,7 +60,19 @@ public class PreyAgent : MonoBehaviour {
         previousPosition = transform.position;
 
         if (health > 0 && animator.enabled) {
+
+            // Updates the prey -- which updates the velocity. Then set this transform to translate with the given velocity multiplied by deltaTime to 
+            // consider framerate fluctuations. 
 			updatePrey();
+
+            GetComponent<Rigidbody>().AddForce(velocity, ForceMode.VelocityChange);
+            if (getVelocity().magnitude > velocity.magnitude) {
+                Vector3 vel = GetComponent<Rigidbody>().velocity;
+                vel = vel.normalized * velocity.magnitude;
+
+                GetComponent<Rigidbody>().velocity = vel;
+            }
+
             if (curSpeed > 0 && curSpeed <= (maxWalkSpeed + 1)) {
                 animator.SetInteger("movement_state", 1);
             } else if (curSpeed > maxWalkSpeed + 1) {
@@ -93,7 +98,7 @@ public class PreyAgent : MonoBehaviour {
         if (selected) {
             GUI.color = Color.red;
             GUI.Label(new Rect(10, 10, 500, 20), "Agent Name: " + this.transform.name);
-            GUI.Label(new Rect(10, 20, 500, 20), "Speed: " + curSpeed);
+            GUI.Label(new Rect(10, 20, 500, 20), "Speed: " + getSpeed());
             GUI.Label(new Rect(10, 30, 500, 20), "Endurance: " + endurance);
             GUI.Label(new Rect(10, 40, 500, 20), "Health: " + health);
             GUI.Label(new Rect(10, 50, 500, 20), "State: " + preyMode);
@@ -125,7 +130,11 @@ public class PreyAgent : MonoBehaviour {
 
     // Getter function to receive the current agent's velocity in the simulation
     public Vector3 getVelocity() {
-        return agent.velocity;
+        return GetComponent<Rigidbody>().velocity;
+    }
+
+    public float getSpeed() {
+        return getVelocity().magnitude;
     }
 
     // Used to update the Prey per time step. 
@@ -214,15 +223,15 @@ public class PreyAgent : MonoBehaviour {
             Vector3 newVelocity = calculateNewVelocity(alignment, cohesion, seperation, repulsion, runSpeed);
 
             if (!(float.IsNaN(newVelocity.x) || float.IsNaN(newVelocity.y) || float.IsNaN(newVelocity.z))) {
-                agent.velocity = newVelocity;
+                velocity = newVelocity;
             }
         } else {
             if (postFleeTimeRemaining > 0.0f) {
                 // keep our direction but make sure our magnitude is still high 
-                Vector3 direction = agent.velocity;
+                Vector3 direction = velocity;
                 direction.Normalize();
 
-                agent.velocity = direction * (maxRunSpeed * enduranceFactor);
+                velocity = direction * (maxRunSpeed * enduranceFactor);
 
                 postFleeTimeRemaining -= Time.deltaTime;
                 //Debug.Log("postFleeTimeRemaining" + postFleeTimeRemaining);
@@ -231,17 +240,17 @@ public class PreyAgent : MonoBehaviour {
                     isFleeing = true;
                     preyMode = "detected fleeing neighbors";
                     Vector3 newVelocity = calculateNewVelocity(alignment, cohesion, seperation, repulsion, runSpeed);
-                    agent.velocity = newVelocity;
+                    velocity = newVelocity;
                 } else {
                     isFleeing = false;
                     preyMode = "flocking";
                     Vector3 newVelocity = calculateNewVelocity(alignment, cohesion, seperation, repulsion, maxWalkSpeed);
-                    agent.velocity = newVelocity;
+                    velocity = newVelocity;
                 }
             }
             
         }
-        Debug.DrawRay(this.transform.position, agent.velocity, Color.red, 0, false);
+        Debug.DrawRay(this.transform.position, velocity, Color.red, 0, false);
     }
 
     // Updates the endurance for this Prey per time step.
@@ -268,10 +277,7 @@ public class PreyAgent : MonoBehaviour {
 
     // When called, exhibits the "disabled" state of a Prey.
     private void exhibitDisabledState() {
-        agent.speed = 0;
-		agent.velocity = Vector3.zero;
-        agent.ResetPath();
-		agent.enabled = false;
+		velocity = Vector3.zero;
         transform.Rotate(new Vector3(transform.rotation.x, transform.rotation.y, 90));
         BoxCollider collide = this.GetComponent<BoxCollider>();
         animator.enabled = false;
@@ -282,7 +288,7 @@ public class PreyAgent : MonoBehaviour {
     // the model (alignment, cohesion, separation). Clamps the magnitude to the given float input "runSpeed" which is typically the 
     // maximum desired run speed of the prey in the simulation. 
     private Vector3 calculateNewVelocity(Vector3 alignment, Vector3 cohesion, Vector3 separation, Vector3 repulsion, float runSpeed) {
-        Vector3 sum = agent.velocity;
+        Vector3 sum = velocity;
 
         if (Config.PREY_USE_ALIGNMENT) {
             sum += alignment;

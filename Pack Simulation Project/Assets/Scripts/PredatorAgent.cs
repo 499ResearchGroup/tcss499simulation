@@ -5,13 +5,11 @@ using System.Collections;
 // Script utilized for behavior on our Predator GameObjects
 public class PredatorAgent : MonoBehaviour {
 
-
-    private NavMeshAgent agent;
     private Animation animate;
 
     private float maxWalkSpeed;
     private float maxRunSpeed;
-
+    private Vector3 velocity;
 
     // The following three fields are used for animation controlling.
     // 0 = running, walking
@@ -39,8 +37,7 @@ public class PredatorAgent : MonoBehaviour {
 
     // Use this for initialization
     void Start() {
-        agent = GetComponent<NavMeshAgent>();
-        agent.autoBraking = false;
+        velocity = new Vector3(0, 0, 0);
         Transform findChild = this.transform.Find("allosaurus_root");
         animate = findChild.GetComponent<Animation>();
         previousPosition = transform.position;
@@ -48,7 +45,7 @@ public class PredatorAgent : MonoBehaviour {
         maxWalkSpeed = Config.PREDATOR_WALK_SPEED;
         maxRunSpeed = Config.PREDATOR_RUN_SPEED;
         visionRadius = Config.PREDATOR_VISION_RADIUS;
-        personalSpaceRadius = agent.radius * 4;
+        personalSpaceRadius = 6 * 4;
         killRange = 8.5f;
         predatorAnimState = 0;
         attackTime = 0.5f;
@@ -65,6 +62,15 @@ public class PredatorAgent : MonoBehaviour {
 
         // if we're a predator
         updatePredator();
+        Debug.Log("Predator velocity: " + velocity);
+        GetComponent<Rigidbody>().AddForce(velocity, ForceMode.VelocityChange);
+        if (getVelocity().magnitude > velocity.magnitude) {
+            Vector3 vel = GetComponent<Rigidbody>().velocity;
+            vel = vel.normalized * velocity.magnitude;
+
+            GetComponent<Rigidbody>().velocity = vel;
+        }
+
 
         if (predatorAnimState == 1) {
             animate.CrossFade("Allosaurus_Attack01");
@@ -98,7 +104,7 @@ public class PredatorAgent : MonoBehaviour {
         if (selected) {
             GUI.color = Color.red;
             GUI.Label(new Rect(10, 10, 500, 20), "Agent Name: " + this.transform.name);
-            GUI.Label(new Rect(10, 20, 500, 20), "Speed: " + curSpeed);
+            GUI.Label(new Rect(10, 20, 500, 20), "Speed: " + getSpeed());
             GUI.Label(new Rect(10, 30, 500, 20), "Endurance: " + endurance);
             GUI.Label(new Rect(10, 40, 500, 20), "Current State: " + predatorMode);
         }
@@ -111,7 +117,11 @@ public class PredatorAgent : MonoBehaviour {
 
     // Getter function to receive the agent's velocity in the simulation
     public Vector3 getVelocity() {
-        return agent.velocity;
+        return GetComponent<Rigidbody>().velocity;
+    }
+
+    public float getSpeed() {
+        return getVelocity().magnitude;
     }
 
 	// The update predator function which contains all function calls necessary to update the state of the Predator.
@@ -213,13 +223,13 @@ public class PredatorAgent : MonoBehaviour {
             Vector3 newVelocity = calculateNewVelocity(alignment, cohesion, seperation, attraction, runSpeed);
 
             if (!(float.IsNaN(newVelocity.x) || float.IsNaN(newVelocity.y) || float.IsNaN(newVelocity.z))) {
-                agent.velocity = Vector3.ClampMagnitude(newVelocity, runSpeed);
+                velocity = Vector3.ClampMagnitude(newVelocity, runSpeed);
             }
             //}
         } else {
             predatorMode = "Herding with other Predators";
             areTargets = false;
-            agent.velocity = Vector3.ClampMagnitude(agent.velocity + alignment + cohesion + seperation, maxWalkSpeed);
+            velocity = Vector3.ClampMagnitude(velocity + alignment + cohesion + seperation, maxWalkSpeed);
         }
     }
 
@@ -283,7 +293,7 @@ public class PredatorAgent : MonoBehaviour {
     // the model (alignment, cohesion, separation). Clamps the magnitude to the given float input "runSpeed" which is typically the 
     // maximum desired run speed of the predator in the simulation. 
     private Vector3 calculateNewVelocity(Vector3 alignment, Vector3 cohesion, Vector3 separation, Vector3 attraction, float runSpeed) {
-        Vector3 sum = agent.velocity; 
+        Vector3 sum = velocity; 
 
         if (Config.PREDATOR_USE_ALIGNMENT) {
             sum += alignment;

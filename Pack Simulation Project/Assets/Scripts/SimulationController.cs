@@ -46,17 +46,17 @@ static class Config {
     /* Values for control over weaknesses in the prey group */
     /* Percentage reflects the amount the prey is weakened by */
 
-    public const bool USE_AUTOMATION = true;
+    public const bool USE_AUTOMATION = false;
     public static readonly float[] PERCENT_WEAK_SET = new float[] { 0.95f, 0.90f, 0.85f, 0.80f, 0.75f };
     public static readonly int[] COUNT_WEAK_SET = new int[] { 1 };
     public static int START_INDEX = 0;
     
 
     public const int WEAK_ENDURANCE_PREY_COUNT = 0;
-    public const float WEAK_ENDURANCE_PERCENT = 0.93f;
+    public const float WEAK_ENDURANCE_PERCENT = 0.95f;
 
     public const int WEAK_MAXSPEED_PREY_COUNT = 0;
-    public const float WEAK_MAXSPEED_PERCENT = 0.99f;
+    public const float WEAK_MAXSPEED_PERCENT = 0.95f;
 
     public const int WEAK_BOTH_PREY_COUNT = 0;
     public const float WEAK_BOTH_PERCENT = 0.95f;
@@ -74,7 +74,7 @@ static class Config {
                                       /* Will be used to control all random aspects of initialization. */
 
     /* Constants. Do not change unless there is a good reason. */
-    public const float HEIGHT_PLANE = -25.8267f; // The y-axis coordinate
+    public const float HEIGHT_PLANE = 1.192093e-07f; // The y-axis coordinate
 
     public const char DELIMITER = ',';
 }
